@@ -80,7 +80,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ramustore',
         'USER': 'ramu',
-        'PASSWORD': '',
+        'PASSWORD': 'kaka',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -115,5 +115,5 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-LOGIN_REDIRECT_URL = 'login_welcome'
+LOGIN_REDIRECT_URL = 'main_welcome'
 LOGOUT_REDIRECT_URL = 'welcome'

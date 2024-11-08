@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Welcome, {{ user.username }}!</h1>
+    <p>Enter your pantry items and utensils:</p>
+
+    <!-- Pantry Input Field -->
+    <div class="mb-3">
+        <label for="pantry" class="form-label">Add Pantry Item</label>
+        <input type="text" class="form-control" id="pantry" placeholder="Enter pantry item name">
+        <input type="number" class="form-control mt-2" id="pantry_quantity" placeholder="Quantity" value="1">
+    </div>
+
+    <!-- Utensil Input Field -->
+    <div class="mb-3">
+        <label for="utensil" class="form-label">Add Utensil</label>
+        <input type="text" class="form-control" id="utensil" placeholder="Enter utensil name">
+        <input type="number" class="form-control mt-2" id="utensil_quantity" placeholder="Quantity" value="1">
+    </div>
+
+    <!-- Display Pantry Items with Delete Button -->
+    <h3>Your Pantry</h3>
+    <ul id="pantry-list" class="list-group">
+        {% for item in pantry_items %}
+            <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ item.id }}">
+                {{ item.item_name }} ({{ item.quantity }})
+                <button class="btn btn-danger btn-sm" onclick="deletePantryItem({{ item.id }})">Delete</button>
+            </li>
+        {% empty %}
+            <li class="list-group-item" id="no-pantry">No pantry items added.</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Display Utensil Items with Delete Button -->
+    <h3 class="mt-4">Your Utensils</h3>
+    <ul id="utensil-list" class="list-group">
+        {% for utensil in utensil_items %}
+            <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ utensil.id }}">
+                {{ utensil.utensil_name }} ({{ utensil.quantity }})
+                <button class="btn btn-danger btn-sm" onclick="deleteUtensilItem({{ utensil.id }})">Delete</button>
+            </li>
+        {% empty %}
+            <li class="list-group-item" id="no-utensils">No utensils added.</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<script>
+    // Function to handle adding a pantry item with AJAX and dynamically updating the DOM
+    document.getElementById('pantry').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const itemName = event.target.value;
+            const quantity = document.getElementById('pantry_quantity').value;
+            fetch("{% url 'add_pantry_item' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `item_name=${itemName}&quantity=${quantity}`
+            }).then(response => response.json()).then(data => {
+                if (data.status === "success") {
+                    const pantryList = document.getElementById('pantry-list');
+                    
+                    // Remove "No pantry items added" message if it exists
+                    const noPantryMessage = document.getElementById('no-pantry');
+                    if (noPantryMessage) noPantryMessage.remove();
+
+                    // Add the new item to the DOM
+                    const newItem = document.createElement('li');
+                    newItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    newItem.setAttribute('data-id', data.item_id);
+                    newItem.innerHTML = `${data.item} (${data.quantity})
+                        <button class="btn btn-danger btn-sm" onclick="deletePantryItem(${data.item_id})">Delete</button>`;
+                    pantryList.appendChild(newItem);
+                }
+            });
+            event.target.value = '';  // Clear the input field
+        }
+    });
+
+    // Function to handle adding a utensil item with AJAX and dynamically updating the DOM
+    document.getElementById('utensil').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const utensilName = event.target.value;
+            const quantity = document.getElementById('utensil_quantity').value;
+            fetch("{% url 'add_utensil_item' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: `utensil_name=${utensilName}&quantity=${quantity}`
+            }).then(response => response.json()).then(data => {
+                if (data.status === "success") {
+                    const utensilList = document.getElementById('utensil-list');
+
+                    // Remove "No utensils added" message if it exists
+                    const noUtensilsMessage = document.getElementById('no-utensils');
+                    if (noUtensilsMessage) noUtensilsMessage.remove();
+
+                    // Add the new utensil to the DOM
+                    const newUtensil = document.createElement('li');
+                    newUtensil.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    newUtensil.setAttribute('data-id', data.utensil_id);
+                    newUtensil.innerHTML = `${data.utensil} (${data.quantity})
+                        <button class="btn btn-danger btn-sm" onclick="deleteUtensilItem(${data.utensil_id})">Delete</button>`;
+                    utensilList.appendChild(newUtensil);
+                }
+            });
+            event.target.value = '';  // Clear the input field
+        }
+    });
+
+    // Function to handle deleting a pantry item with AJAX and dynamically updating the DOM
+    function deletePantryItem(itemId) {
+        fetch("{% url 'delete_pantry_item' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `item_id=${itemId}`
+        }).then(response => response.json()).then(data => {
+            if (data.status === "success") {
+                // Remove the item from the DOM
+                document.querySelector(`#pantry-list li[data-id="${itemId}"]`).remove();
+                
+                // If no items left, show "No pantry items added" message
+                if (!document.querySelector('#pantry-list li')) {
+                    const noPantryMessage = document.createElement('li');
+                    noPantryMessage.className = 'list-group-item';
+                    noPantryMessage.id = 'no-pantry';
+                    noPantryMessage.innerText = 'No pantry items added.';
+                    document.getElementById('pantry-list').appendChild(noPantryMessage);
+                }
+            }
+        });
+    }
+
+    // Function to handle deleting a utensil item with AJAX and dynamically updating the DOM
+    function deleteUtensilItem(itemId) {
+        fetch("{% url 'delete_utensil_item' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `item_id=${itemId}`
+        }).then(response => response.json()).then(data => {
+            if (data.status === "success") {
+                // Remove the utensil from the DOM
+                document.querySelector(`#utensil-list li[data-id="${itemId}"]`).remove();
+                
+                // If no items left, show "No utensils added" message
+                if (!document.querySelector('#utensil-list li')) {
+                    const noUtensilsMessage = document.createElement('li');
+                    noUtensilsMessage.className = 'list-group-item';
+                    noUtensilsMessage.id = 'no-utensils';
+                    noUtensilsMessage.innerText = 'No utensils added.';
+                    document.getElementById('utensil-list').appendChild(noUtensilsMessage);
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
