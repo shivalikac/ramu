@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -10,6 +11,32 @@ from .models import PantryItem, UtensilItem
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
+import requests
+from .model_utils import get_recipes_from_spoonacular
+
+@login_required
+def generate_recipe(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        recipe_count = int(data.get('recipe_count', 5))
+        cuisine = data.get('cuisine', '')  # Get selected cuisine (empty if not selected)
+
+        # Fetch pantry items and utensils for the user
+        pantry_items = PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True)
+        user_utensils = UtensilItem.objects.filter(user=request.user).values_list('utensil_name', flat=True)
+
+        ingredients = list(pantry_items)
+        utensils = list(user_utensils)
+
+        # Call Spoonacular API with optional cuisine filtering
+        recipes = get_recipes_from_spoonacular(ingredients, utensils, recipe_count, cuisine if cuisine else None)
+
+        if "error" in recipes:
+            return JsonResponse({"error": recipes["error"]}, status=400)
+
+        return JsonResponse({"recipes": recipes})
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
 
 
 # Welcome page view (for non-logged-in users)

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import welcome, CustomLoginView, register, main_welcome, profile, custom_logout, add_pantry_item, add_utensil_item
-from .views import delete_pantry_item, delete_utensil_item
+from .views import delete_pantry_item, delete_utensil_item, generate_recipe
 
 urlpatterns = [
     path('', welcome, name='welcome'),
@@ -13,4 +13,5 @@ urlpatterns = [
     path('add_utensil_item/', add_utensil_item, name='add_utensil_item'),
     path('delete_pantry_item/', delete_pantry_item, name='delete_pantry_item'),
     path('delete_utensil_item/', delete_utensil_item, name='delete_utensil_item'),
+    path('generate_recipe/', generate_recipe, name='generate_recipe'),
 ]

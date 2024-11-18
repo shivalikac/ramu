@@ -5,22 +5,13 @@
     <h1>Welcome, {{ user.username }}!</h1>
     <p>Enter your pantry items and utensils:</p>
 
-    <!-- Pantry Input Field -->
+    <!-- Pantry Section -->
+    <h3>Your Pantry</h3>
     <div class="mb-3">
         <label for="pantry" class="form-label">Add Pantry Item</label>
         <input type="text" class="form-control" id="pantry" placeholder="Enter pantry item name">
         <input type="number" class="form-control mt-2" id="pantry_quantity" placeholder="Quantity" value="1">
     </div>
-
-    <!-- Utensil Input Field -->
-    <div class="mb-3">
-        <label for="utensil" class="form-label">Add Utensil</label>
-        <input type="text" class="form-control" id="utensil" placeholder="Enter utensil name">
-        <input type="number" class="form-control mt-2" id="utensil_quantity" placeholder="Quantity" value="1">
-    </div>
-
-    <!-- Display Pantry Items with Delete Button -->
-    <h3>Your Pantry</h3>
     <ul id="pantry-list" class="list-group">
         {% for item in pantry_items %}
             <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ item.id }}">
@@ -32,8 +23,13 @@
         {% endfor %}
     </ul>
 
-    <!-- Display Utensil Items with Delete Button -->
+    <!-- Utensil Section -->
     <h3 class="mt-4">Your Utensils</h3>
+    <div class="mb-3">
+        <label for="utensil" class="form-label">Add Utensil</label>
+        <input type="text" class="form-control" id="utensil" placeholder="Enter utensil name">
+        <input type="number" class="form-control mt-2" id="utensil_quantity" placeholder="Quantity" value="1">
+    </div>
     <ul id="utensil-list" class="list-group">
         {% for utensil in utensil_items %}
             <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ utensil.id }}">
@@ -44,6 +40,55 @@
             <li class="list-group-item" id="no-utensils">No utensils added.</li>
         {% endfor %}
     </ul>
+
+    <!-- Recipe Count Input Field -->
+    <div class="mt-5 mb-3">
+        <h3 class="form-label">Number of Recipe Suggestions</h3>
+        <input type="number" class="form-control" id="recipe-count" placeholder="Enter number (e.g., 5)" min="1" max="10" value="5">
+    </div>
+
+    <!-- Cuisine Dropdown -->
+    <div class="mb-3">
+        <label for="cuisine-select" class="form-label"><strong>Select a Cuisine</strong></label>
+        <select class="form-select" id="cuisine-select">
+            <option value="">-- Select Cuisine --</option>
+            <option value="African">African</option>
+            <option value="American">American</option>
+            <option value="British">British</option>
+            <option value="Cajun">Cajun</option>
+            <option value="Caribbean">Caribbean</option>
+            <option value="Chinese">Chinese</option>
+            <option value="Eastern European">Eastern European</option>
+            <option value="European">European</option>
+            <option value="French">French</option>
+            <option value="German">German</option>
+            <option value="Greek">Greek</option>
+            <option value="Indian">Indian</option>
+            <option value="Irish">Irish</option>
+            <option value="Italian">Italian</option>
+            <option value="Japanese">Japanese</option>
+            <option value="Jewish">Jewish</option>
+            <option value="Korean">Korean</option>
+            <option value="Latin American">Latin American</option>
+            <option value="Mediterranean">Mediterranean</option>
+            <option value="Mexican">Mexican</option>
+            <option value="Middle Eastern">Middle Eastern</option>
+            <option value="Nordic">Nordic</option>
+            <option value="Southern">Southern</option>
+            <option value="Spanish">Spanish</option>
+            <option value="Thai">Thai</option>
+            <option value="Vietnamese">Vietnamese</option>
+        </select>
+    </div>
+
+    <!-- Recipe Generation Button -->
+    <button class="btn btn-primary mt-4" id="generate-recipe-btn">Generate Recipe</button>
+
+    <!-- Display Generated Recipes -->
+    <div id="recipe-display" class="mt-4">
+        <h3>Suggested Recipes</h3>
+        <ul id="recipe-list" class="list-group"></ul>
+    </div>
 </div>
 
 <script>
@@ -166,5 +211,73 @@
             }
         });
     }
+    document.getElementById('generate-recipe-btn').addEventListener('click', function () {
+        const recipeCount = document.getElementById('recipe-count').value;
+        const cuisine = document.getElementById('cuisine-select').value; // Empty if not selected
+
+        fetch("{% url 'generate_recipe' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                recipe_count: recipeCount,
+                cuisine: cuisine // Will be an empty string if no cuisine is selected
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                const recipeList = document.getElementById('recipe-list');
+                recipeList.innerHTML = ''; // Clear the list
+
+                if (data.recipes) {
+                    data.recipes.forEach(recipe => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item';
+                        li.innerHTML = `
+                            <div class="recipe-card">
+                                <img src="${recipe.image}" alt="${recipe.title}" class="recipe-img">
+                                <div class="recipe-info">
+                                    <h4>${recipe.title}</h4>
+                                    <a href="https://spoonacular.com/recipes/${recipe.title.replace(/\s+/g, '-')}-${recipe.id}" target="_blank">View Full Recipe</a>
+                                    <p><strong>Used Ingredients:</strong> ${recipe.usedIngredients.map(i => i.name).join(', ')}</p>
+                                    <p><strong>Missing Ingredients:</strong> ${recipe.missedIngredients.map(i => i.name).join(', ')}</p>
+                                </div>
+                            </div>
+                        `;
+                        recipeList.appendChild(li);
+                    });
+                } else {
+                    recipeList.innerHTML = '<li class="list-group-item">No recipes found.</li>';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
 </script>
+
+<style>
+    .recipe-card {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .recipe-img {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    .recipe-info {
+        flex: 1;
+    }
+    .recipe-info h4 {
+        margin: 0;
+    }
+    .recipe-info a {
+        text-decoration: none;
+        color: #007bff;
+    }
+</style>
+
 {% endblock %}
