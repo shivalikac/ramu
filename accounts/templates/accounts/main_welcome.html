@@ -3,7 +3,6 @@
 {% block content %}
 <div class="container mt-5">
     <h1>Welcome, {{ user.username }}!</h1>
-    <p>Enter your pantry items and utensils:</p>
 
     <!-- Pantry Section -->
     <h3>Your Pantry</h3>
@@ -24,7 +23,7 @@
     </ul>
 
     <!-- Utensil Section -->
-    <h3 class="mt-4">Your Utensils</h3>
+    <h3>Your Utensils</h3>
     <div class="mb-3">
         <label for="utensil" class="form-label">Add Utensil</label>
         <input type="text" class="form-control" id="utensil" placeholder="Enter utensil name">
@@ -41,15 +40,17 @@
         {% endfor %}
     </ul>
 
-    <!-- Recipe Count Input Field -->
-    <div class="mt-5 mb-3">
-        <h3 class="form-label">Number of Recipe Suggestions</h3>
-        <input type="number" class="form-control" id="recipe-count" placeholder="Enter number (e.g., 5)" min="1" max="10" value="5">
-    </div>
-
-    <!-- Cuisine Dropdown -->
+    <!-- Filters for Recipes -->
     <div class="mb-3">
-        <label for="cuisine-select" class="form-label"><strong>Select a Cuisine</strong></label>
+        <label for="cooking-time" class="form-label">Maximum Cooking Time (in minutes)</label>
+        <input type="number" class="form-control" id="cooking-time" placeholder="Enter time (e.g., 30)" min="1">
+    </div>
+    <div class="mb-3">
+        <label for="recipe-count" class="form-label">Number of Recipe Suggestions</label>
+        <input type="number" class="form-control" id="recipe-count" value="5" min="1" max="10">
+    </div>
+    <div class="mb-3">
+        <label for="cuisine-select" class="form-label">Select a Cuisine</label>
         <select class="form-select" id="cuisine-select">
             <option value="">-- Select Cuisine --</option>
             <option value="African">African</option>
@@ -81,10 +82,9 @@
         </select>
     </div>
 
-    <!-- Recipe Generation Button -->
     <button class="btn btn-primary mt-4" id="generate-recipe-btn">Generate Recipe</button>
 
-    <!-- Display Generated Recipes -->
+    <!-- Recipe Display -->
     <div id="recipe-display" class="mt-4">
         <h3>Suggested Recipes</h3>
         <ul id="recipe-list" class="list-group"></ul>
@@ -92,128 +92,11 @@
 </div>
 
 <script>
-    // Function to handle adding a pantry item with AJAX and dynamically updating the DOM
-    document.getElementById('pantry').addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            const itemName = event.target.value;
-            const quantity = document.getElementById('pantry_quantity').value;
-            fetch("{% url 'add_pantry_item' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: `item_name=${itemName}&quantity=${quantity}`
-            }).then(response => response.json()).then(data => {
-                if (data.status === "success") {
-                    const pantryList = document.getElementById('pantry-list');
-                    
-                    // Remove "No pantry items added" message if it exists
-                    const noPantryMessage = document.getElementById('no-pantry');
-                    if (noPantryMessage) noPantryMessage.remove();
-
-                    // Add the new item to the DOM
-                    const newItem = document.createElement('li');
-                    newItem.className = 'list-group-item d-flex justify-content-between align-items-center';
-                    newItem.setAttribute('data-id', data.item_id);
-                    newItem.innerHTML = `${data.item} (${data.quantity})
-                        <button class="btn btn-danger btn-sm" onclick="deletePantryItem(${data.item_id})">Delete</button>`;
-                    pantryList.appendChild(newItem);
-                }
-            });
-            event.target.value = '';  // Clear the input field
-        }
-    });
-
-    // Function to handle adding a utensil item with AJAX and dynamically updating the DOM
-    document.getElementById('utensil').addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            const utensilName = event.target.value;
-            const quantity = document.getElementById('utensil_quantity').value;
-            fetch("{% url 'add_utensil_item' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: `utensil_name=${utensilName}&quantity=${quantity}`
-            }).then(response => response.json()).then(data => {
-                if (data.status === "success") {
-                    const utensilList = document.getElementById('utensil-list');
-
-                    // Remove "No utensils added" message if it exists
-                    const noUtensilsMessage = document.getElementById('no-utensils');
-                    if (noUtensilsMessage) noUtensilsMessage.remove();
-
-                    // Add the new utensil to the DOM
-                    const newUtensil = document.createElement('li');
-                    newUtensil.className = 'list-group-item d-flex justify-content-between align-items-center';
-                    newUtensil.setAttribute('data-id', data.utensil_id);
-                    newUtensil.innerHTML = `${data.utensil} (${data.quantity})
-                        <button class="btn btn-danger btn-sm" onclick="deleteUtensilItem(${data.utensil_id})">Delete</button>`;
-                    utensilList.appendChild(newUtensil);
-                }
-            });
-            event.target.value = '';  // Clear the input field
-        }
-    });
-
-    // Function to handle deleting a pantry item with AJAX and dynamically updating the DOM
-    function deletePantryItem(itemId) {
-        fetch("{% url 'delete_pantry_item' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: `item_id=${itemId}`
-        }).then(response => response.json()).then(data => {
-            if (data.status === "success") {
-                // Remove the item from the DOM
-                document.querySelector(`#pantry-list li[data-id="${itemId}"]`).remove();
-                
-                // If no items left, show "No pantry items added" message
-                if (!document.querySelector('#pantry-list li')) {
-                    const noPantryMessage = document.createElement('li');
-                    noPantryMessage.className = 'list-group-item';
-                    noPantryMessage.id = 'no-pantry';
-                    noPantryMessage.innerText = 'No pantry items added.';
-                    document.getElementById('pantry-list').appendChild(noPantryMessage);
-                }
-            }
-        });
-    }
-
-    // Function to handle deleting a utensil item with AJAX and dynamically updating the DOM
-    function deleteUtensilItem(itemId) {
-        fetch("{% url 'delete_utensil_item' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: `item_id=${itemId}`
-        }).then(response => response.json()).then(data => {
-            if (data.status === "success") {
-                // Remove the utensil from the DOM
-                document.querySelector(`#utensil-list li[data-id="${itemId}"]`).remove();
-                
-                // If no items left, show "No utensils added" message
-                if (!document.querySelector('#utensil-list li')) {
-                    const noUtensilsMessage = document.createElement('li');
-                    noUtensilsMessage.className = 'list-group-item';
-                    noUtensilsMessage.id = 'no-utensils';
-                    noUtensilsMessage.innerText = 'No utensils added.';
-                    document.getElementById('utensil-list').appendChild(noUtensilsMessage);
-                }
-            }
-        });
-    }
+    // Function to handle recipe generation and display
     document.getElementById('generate-recipe-btn').addEventListener('click', function () {
         const recipeCount = document.getElementById('recipe-count').value;
-        const cuisine = document.getElementById('cuisine-select').value; // Empty if not selected
+        const cuisine = document.getElementById('cuisine-select').value;
+        const cookingTime = document.getElementById('cooking-time').value;
 
         fetch("{% url 'generate_recipe' %}", {
             method: 'POST',
@@ -223,37 +106,91 @@
             },
             body: JSON.stringify({
                 recipe_count: recipeCount,
-                cuisine: cuisine // Will be an empty string if no cuisine is selected
+                cuisine: cuisine,
+                cooking_time: cookingTime
             })
         })
-            .then(response => response.json())
-            .then(data => {
-                const recipeList = document.getElementById('recipe-list');
-                recipeList.innerHTML = ''; // Clear the list
+        .then(response => response.json())
+        .then(data => {
+            const recipeList = document.getElementById('recipe-list');
+            recipeList.innerHTML = ''; // Clear previous recipes
 
-                if (data.recipes) {
-                    data.recipes.forEach(recipe => {
-                        const li = document.createElement('li');
-                        li.className = 'list-group-item';
-                        li.innerHTML = `
-                            <div class="recipe-card">
-                                <img src="${recipe.image}" alt="${recipe.title}" class="recipe-img">
-                                <div class="recipe-info">
-                                    <h4>${recipe.title}</h4>
-                                    <a href="https://spoonacular.com/recipes/${recipe.title.replace(/\s+/g, '-')}-${recipe.id}" target="_blank">View Full Recipe</a>
-                                    <p><strong>Used Ingredients:</strong> ${recipe.usedIngredients.map(i => i.name).join(', ')}</p>
-                                    <p><strong>Missing Ingredients:</strong> ${recipe.missedIngredients.map(i => i.name).join(', ')}</p>
-                                </div>
+            if (data.recipes) {
+                data.recipes.forEach(recipe => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item';
+                    li.innerHTML = `
+                        <div class="recipe-card">
+                            <img src="${recipe.image}" alt="${recipe.title}" class="recipe-img">
+                            <div class="recipe-info">
+                                <h4>${recipe.title}</h4>
+                                <a href="https://spoonacular.com/recipes/${recipe.title.replace(/\s+/g, '-')}-${recipe.id}" target="_blank">View Full Recipe</a>
+                                <p><strong>Used Ingredients:</strong> ${recipe.usedIngredients.map(i => i.name).join(', ')}</p>
+                                <p><strong>Missing Ingredients:</strong> ${recipe.missedIngredients.map(i => i.name).join(', ')}</p>
+                                <button class="btn btn-primary mt-2 add-to-calendar-btn" 
+                                        data-title="${recipe.title}" 
+                                        data-image="${recipe.image}" 
+                                        data-id="${recipe.id}">
+                                    Add to Calendar
+                                </button>
                             </div>
-                        `;
-                        recipeList.appendChild(li);
+                        </div>
+                    `;
+                    recipeList.appendChild(li);
+                });
+
+                // Add event listeners for "Add to Calendar" buttons
+                document.querySelectorAll('.add-to-calendar-btn').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const recipeTitle = this.dataset.title;
+                        const recipeImage = this.dataset.image;
+                        const recipeId = this.dataset.id;
+
+                        const date = prompt(`Enter the date to schedule "${recipeTitle}" (YYYY-MM-DD):`);
+                        if (!date) return;
+
+                        const mealType = prompt('Is this for lunch or dinner? (Type "lunch" or "dinner")').toLowerCase();
+                        if (!['lunch', 'dinner'].includes(mealType)) {
+                            alert('Invalid meal type. Please type "lunch" or "dinner".');
+                            return;
+                        }
+
+                        addToCalendar(recipeTitle, recipeImage, recipeId, date, mealType);
                     });
-                } else {
-                    recipeList.innerHTML = '<li class="list-group-item">No recipes found.</li>';
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                });
+            } else {
+                recipeList.innerHTML = '<li class="list-group-item">No recipes found.</li>';
+            }
+        })
+        .catch(error => console.error('Error:', error));
     });
+
+    // Function to add a recipe to the calendar
+    function addToCalendar(title, image, recipeId, date, mealType) {
+        fetch("{% url 'add_to_calendar' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                title: title,
+                image: image,
+                recipe_id: recipeId,
+                date: date,
+                meal_type: mealType // Include meal type (lunch or dinner)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(`"${title}" has been added to your calendar on ${date} for ${mealType}.`);
+            } else {
+                alert("Failed to add to calendar.");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 </script>
 
 <style>
@@ -279,5 +216,4 @@
         color: #007bff;
     }
 </style>
-
 {% endblock %}

@@ -2,7 +2,7 @@ import requests
 
 API_KEY = "62c82155ebda44cbaeed4927ea08fdc9"
 
-def get_recipes_from_spoonacular(ingredients, user_utensils, recipe_count=5, cuisine=None):
+def get_recipes_from_spoonacular(ingredients, user_utensils, recipe_count=5, cuisine=None, cooking_time=None):
     url = "https://api.spoonacular.com/recipes/findByIngredients"
     params = {
         "apiKey": API_KEY,
@@ -11,9 +11,11 @@ def get_recipes_from_spoonacular(ingredients, user_utensils, recipe_count=5, cui
         "ranking": 1,
     }
 
-    # Add cuisine to the parameters only if provided
+    # Add optional filters
     if cuisine:
         params["cuisine"] = cuisine
+    if cooking_time:
+        params["maxReadyTime"] = cooking_time  # Add max cooking time filter
 
     try:
         response = requests.get(url, params=params)

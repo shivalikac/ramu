@@ -118,3 +118,11 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'main_welcome'
 LOGOUT_REDIRECT_URL = 'welcome'
+
+GOOGLE_CLIENT_ID = 'your_google_client_id'
+GOOGLE_CLIENT_SECRET = 'your_google_client_secret'
+GOOGLE_REDIRECT_URI = 'http://localhost:8000/oauth_callback/google/'
+
+MICROSOFT_CLIENT_ID = 'your_microsoft_client_id'
+MICROSOFT_CLIENT_SECRET = 'your_microsoft_client_secret'
+MICROSOFT_REDIRECT_URI = 'http://localhost:8000/oauth_callback/microsoft/'

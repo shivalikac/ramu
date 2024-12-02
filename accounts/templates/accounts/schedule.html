@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Meal Planning Calendar</h1>
+    <p>Use this calendar to plan your meals.</p>
+
+    <!-- Calendar Display -->
+    <div id="calendar"></div>
+    <button id="add-manual-event-btn" class="btn btn-primary mt-3">Add Meal Manually</button>
+
+</div>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            editable: true,
+            selectable: true,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: '/fetch_calendar_events/',
+
+            eventContent: function (info) {
+                const { title, extendedProps, id } = info.event;
+                const { meal_type, recipe_url } = extendedProps;
+
+                const container = document.createElement('div');
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+                container.style.justifyContent = 'center';
+                container.style.alignItems = 'center';
+                container.style.padding = '10px';
+                container.style.borderRadius = '8px';
+                container.style.color = '#fff';
+
+                // Set background color based on meal type
+                container.style.backgroundColor = meal_type === 'lunch' ? '#87CEEB' : '#FFB6C1';
+
+                // Meal Type
+                const mealTypeEl = document.createElement('div');
+                mealTypeEl.textContent = `${meal_type.charAt(0).toUpperCase() + meal_type.slice(1)}:`;
+                mealTypeEl.style.fontWeight = 'bold';
+                container.appendChild(mealTypeEl);
+
+                // Recipe Title with Link
+                const titleEl = document.createElement('a');
+                titleEl.textContent = title;
+                titleEl.href = recipe_url; // Add the recipe URL
+                titleEl.target = '_blank'; // Open in a new tab
+                titleEl.style.color = '#fff';
+                titleEl.style.textDecoration = 'underline'; // Indicate it's a link
+                titleEl.style.marginTop = '4px';
+                container.appendChild(titleEl);
+
+                // Delete Button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.className = 'btn btn-sm btn-danger mt-2';
+                deleteBtn.onclick = () => deleteEvent(id);
+                container.appendChild(deleteBtn);
+
+                return { domNodes: [container] };
+            }
+
+
+
+        });
+
+        calendar.render();
+
+        // Delete Event Function
+        function deleteEvent(eventId) {
+            console.log("Event ID received in deleteEvent:", eventId); // Log the received event ID
+
+            if (!eventId) {
+                alert("Event ID is missing. Unable to delete the event.");
+                return;
+            }
+
+            fetch("{% url 'delete_calendar_event' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ event_id: eventId }) // Pass the correct event_id
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert(data.message);
+                    calendar.refetchEvents(); // Refresh the calendar to update events
+                } else {
+                    alert(data.message || "Error deleting event.");
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Add Manual Event Function
+        document.getElementById('add-manual-event-btn').addEventListener('click', function () {
+            const title = prompt('Enter the dish name:');
+            if (!title) return;
+
+            const date = prompt('Enter the date (YYYY-MM-DD):');
+            if (!date) return;
+
+            const mealType = prompt('Is this for lunch or dinner? (Type "lunch" or "dinner")').toLowerCase();
+            if (!['lunch', 'dinner'].includes(mealType)) {
+                alert('Invalid meal type. Please type "lunch" or "dinner".');
+                return;
+            }
+
+            fetch("{% url 'add_manual_calendar_event' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ title, date, meal_type: mealType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert(data.message);
+                    calendar.refetchEvents(); // Refresh events
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+
+</script>
+<style>
+    /* Style for calendar events */
+    .fc-event {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    .fc-event div:first-child {
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .fc-event div:last-child {
+        font-size: 12px;
+        color: #333; /* Neutral text color for readability */
+    }
+
+    /* Add hover effects for better user experience */
+    .fc-event:hover {
+        background-color: rgba(0, 0, 0, 0.1); /* Slightly darken the background on hover */
+        cursor: pointer;
+    }
+</style>
+
+{% endblock %}

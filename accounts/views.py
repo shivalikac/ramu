@@ -13,6 +13,10 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 import requests
 from .model_utils import get_recipes_from_spoonacular
+from django.conf import settings
+from django.http import HttpResponseRedirect
+from .models import CalendarEvent
+
 
 @login_required
 def generate_recipe(request):
@@ -120,3 +124,204 @@ class CustomLoginView(LoginView):
 def custom_logout(request):
     logout(request)  # Log the user out
     return redirect('welcome')  # Redirect to the welcome page (or any page you prefer)
+
+@login_required
+def fetch_calendar_events(request):
+    events = CalendarEvent.objects.filter(user=request.user)
+    event_list = [
+        {
+            "title": event.title,
+            "start": event.date.isoformat(),
+            "image": event.image,  # Optional, if needed
+        }
+        for event in events
+    ]
+    return JsonResponse(event_list, safe=False)
+
+@login_required
+def add_to_calendar(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        title = data.get('title')
+        image = data.get('image')
+        recipe_id = data.get('recipe_id')
+        date = data.get('date')
+        meal_type = data.get('meal_type')
+
+        if not (title and date and meal_type):
+            return JsonResponse({"status": "error", "message": "Title, date, and meal type are required."}, status=400)
+
+        # Save the event to the database
+        CalendarEvent.objects.create(
+            user=request.user,
+            title=title,
+            image=image,
+            recipe_id=recipe_id,
+            date=date,
+            meal_type=meal_type
+        )
+
+        return JsonResponse({"status": "success"})
+
+    return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
+
+@login_required
+def generate_recipe(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        # Get and validate cooking time
+        try:
+            cooking_time = int(data.get('cooking_time') or 0)  # Default to 0 if empty or invalid
+        except ValueError:
+            cooking_time = 0
+
+        recipe_count = int(data.get('recipe_count', 5))  # Default to 5 if not provided
+        cuisine = data.get('cuisine', '').strip()  # Get cuisine, default to empty
+
+        # Fetch pantry items and utensils for the user
+        pantry_items = PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True)
+        user_utensils = UtensilItem.objects.filter(user=request.user).values_list('utensil_name', flat=True)
+
+        # Call Spoonacular API with filters
+        recipes = get_recipes_from_spoonacular(
+            ingredients=list(pantry_items),
+            user_utensils=list(user_utensils),
+            recipe_count=recipe_count,
+            cuisine=cuisine,
+            cooking_time=cooking_time
+        )
+
+        if "error" in recipes:
+            return JsonResponse({"error": recipes["error"]}, status=400)
+
+        return JsonResponse({"recipes": recipes})
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+
+@login_required
+def schedule(request):
+    return render(request, 'accounts/schedule.html')
+    
+def link_calendar(request, calendar_type):
+    if calendar_type == "google":
+        oauth_url = "https://accounts.google.com/o/oauth2/auth"
+        params = {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "response_type": "code",
+            "scope": "https://www.googleapis.com/auth/calendar.readonly",
+            "access_type": "offline",
+        }
+        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        return HttpResponseRedirect(f"{oauth_url}?{query_string}")
+
+    elif calendar_type == "microsoft":
+        oauth_url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+        params = {
+            "client_id": settings.MICROSOFT_CLIENT_ID,
+            "redirect_uri": settings.MICROSOFT_REDIRECT_URI,
+            "response_type": "code",
+            "scope": "Calendars.Read",
+        }
+        query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        return HttpResponseRedirect(f"{oauth_url}?{query_string}")
+
+    return HttpResponseRedirect('/schedule/')
+
+def oauth_callback(request, calendar_type):
+    code = request.GET.get('code')
+    if calendar_type == "google":
+        token_url = "https://oauth2.googleapis.com/token"
+        data = {
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code",
+        }
+    elif calendar_type == "microsoft":
+        token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+        data = {
+            "code": code,
+            "client_id": settings.MICROSOFT_CLIENT_ID,
+            "client_secret": settings.MICROSOFT_CLIENT_SECRET,
+            "redirect_uri": settings.MICROSOFT_REDIRECT_URI,
+            "grant_type": "authorization_code",
+        }
+    else:
+        return HttpResponseRedirect('/schedule/')
+
+    # Request access token
+    response = requests.post(token_url, data=data)
+    tokens = response.json()
+    # Store tokens in the session or database for authenticated user
+    request.session[f"{calendar_type}_tokens"] = tokens
+    return HttpResponseRedirect('/schedule/')
+
+@login_required
+def fetch_calendar_events(request):
+    events = CalendarEvent.objects.filter(user=request.user)
+    event_list = [
+        {
+            "id": event.id,
+            "title": event.title,
+            "start": event.date.isoformat(),
+            "meal_type": event.meal_type,
+            "image": event.image,
+            "recipe_url": f"https://spoonacular.com/recipes/{event.title.replace(' ', '-')}-{event.recipe_id}" if event.recipe_id else None
+        }
+        for event in events
+    ]
+
+    # Debug: Print the event list
+    print("Events sent to FullCalendar:", event_list)
+
+    return JsonResponse(event_list, safe=False)
+
+
+@login_required
+def delete_calendar_event(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        event_id = data.get('event_id')
+
+        # Validate event_id
+        if not event_id:
+            return JsonResponse({"status": "error", "message": "Event ID is required."}, status=400)
+
+        try:
+            # Ensure event_id is an integer
+            event = CalendarEvent.objects.get(id=int(event_id), user=request.user)
+            event.delete()
+            return JsonResponse({"status": "success", "message": "Event deleted successfully."})
+        except ValueError:
+            return JsonResponse({"status": "error", "message": "Invalid event ID."}, status=400)
+        except CalendarEvent.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Event not found."}, status=404)
+
+    return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
+
+
+@login_required
+def add_manual_calendar_event(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        title = data.get('title')
+        date = data.get('date')
+        meal_type = data.get('meal_type')
+
+        if not (title and date and meal_type):
+            return JsonResponse({"status": "error", "message": "Title, date, and meal type are required."}, status=400)
+
+        CalendarEvent.objects.create(
+            user=request.user,
+            title=title,
+            date=date,
+            meal_type=meal_type
+        )
+
+        return JsonResponse({"status": "success", "message": "Event added successfully."})
+
+    return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
