@@ -2,7 +2,10 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1>{{ title }}</h1>
+    <!-- Title with Meal Type and Date -->
+    <h1>{{ title }} - {{ meal_type|title }} on {{ date|date:"jS F Y" }}</h1>
+
+    <!-- Recipe Link -->
     <p><strong>Main Recipe Link:</strong> 
         {% if recipe_url %}
             <a href="{{ recipe_url }}" target="_blank">{{ recipe_url }}</a>
@@ -11,6 +14,7 @@
         {% endif %}
     </p>
 
+    <!-- Notes Section -->
     <h3>Notes</h3>
     <textarea id="recipe-notes" class="form-control" rows="10">{{ notes }}</textarea>
     <button class="btn btn-primary mt-3" id="save-notes-btn">Save Notes</button>

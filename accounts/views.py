@@ -37,6 +37,8 @@ def recipe_notes(request, event_id):
         "recipe_url": event.recipe_url,  # Ensure the URL is passed here
         "notes": event.notes,
         "event_id": event.id,
+        'date': event.date,  # Pass the date to the template
+        'meal_type': event.meal_type  # Pass the meal type to the template
     })
 
 @login_required
@@ -81,6 +83,7 @@ def grocery_notes(request, event_id):
         "title": event.title,
         "notes": event.notes,
         "event_id": event.id,
+        'date': event.date  # Pass the date to the template
     })
 
 # Welcome page view (for non-logged-in users)
