@@ -22,7 +22,9 @@ class CalendarEvent(models.Model):
     meal_type = models.CharField(
         max_length=10,
         choices=[('lunch', 'Lunch'), ('dinner', 'Dinner')],
-        default='lunch'  # Set default to "Lunch"
+        default='lunch',  # Set default to "Lunch",
+        null=True,
+        blank=True
     )
 
     recipe_id = models.IntegerField(blank=True, null=True)  # Recipe ID from Spoonacular

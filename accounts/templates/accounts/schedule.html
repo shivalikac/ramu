@@ -8,7 +8,7 @@
     <!-- Calendar Display -->
     <div id="calendar"></div>
     <button id="add-manual-event-btn" class="btn btn-primary mt-3">Add Meal Manually</button>
-
+    <button class="btn btn-primary mt-3" id="add-grocery-shopping-btn">Add Grocery Shopping</button>
 </div>
 
 <script>
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         eventContent: function (info) {
             const { title, extendedProps, id } = info.event;
-            const { meal_type } = extendedProps; // Remove direct recipe_url reference
+            const { meal_type } = extendedProps;
 
             const container = document.createElement('div');
             container.style.display = 'flex';
@@ -38,21 +38,30 @@ document.addEventListener('DOMContentLoaded', function () {
             container.style.alignItems = 'center';
             container.style.padding = '10px';
             container.style.borderRadius = '8px';
-            container.style.color = '#fff';
 
-            // Set background color based on meal type
-            container.style.backgroundColor = meal_type === 'lunch' ? '#87CEEB' : '#FFB6C1';
+            // Set colors for different event types
+            if (title === "Grocery Shopping!") {
+                container.style.backgroundColor = '#FFD700'; // Gold for grocery shopping
+                container.style.color = '#000'; // Dark text for contrast
+            } else {
+                container.style.backgroundColor = meal_type === 'lunch' ? '#87CEEB' : '#FFB6C1'; // Blue for lunch, pink for dinner
+                container.style.color = '#fff'; // White text
+            }
 
-            // Meal Type
-            const mealTypeEl = document.createElement('div');
-            mealTypeEl.textContent = `${meal_type.charAt(0).toUpperCase() + meal_type.slice(1)}:`;
-            mealTypeEl.style.fontWeight = 'bold';
-            container.appendChild(mealTypeEl);
+            // Meal Type or Event Type Display
+            const eventTypeEl = document.createElement('div');
+            eventTypeEl.textContent = title === "Grocery Shopping!" 
+                ? "Grocery Shopping" 
+                : `${meal_type.charAt(0).toUpperCase() + meal_type.slice(1)}:`;
+            eventTypeEl.style.fontWeight = 'bold';
+            container.appendChild(eventTypeEl);
 
-            // Recipe Title with Link to Recipe Notes Page
+            // Event Title with Link to Notes Page
             const titleEl = document.createElement('a');
             titleEl.textContent = title;
-            titleEl.href = `/recipe_notes/${id}/`; // Link to recipe notes page
+            titleEl.href = title === "Grocery Shopping!" 
+                ? `/grocery_notes/${id}/` 
+                : `/recipe_notes/${id}/`;
             titleEl.target = '_blank'; // Open in a new tab
             titleEl.style.color = '#fff';
             titleEl.style.textDecoration = 'underline';
@@ -87,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: JSON.stringify({ event_id: eventId }) // Pass the correct event_id
+            body: JSON.stringify({ event_id: eventId })
         })
         .then(response => response.json())
         .then(data => {
@@ -101,7 +110,32 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => console.error('Error:', error));
     }
 
-    // Add Manual Event Function
+    // Add Grocery Shopping Event
+    document.getElementById('add-grocery-shopping-btn').addEventListener('click', function () {
+        const date = prompt('Enter the date for grocery shopping (YYYY-MM-DD):');
+        if (!date) return;
+
+        fetch("{% url 'add_grocery_shopping_event' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ date: date })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(data.message);
+                calendar.refetchEvents(); // Refresh events
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    // Add Manual Meal Event
     document.getElementById('add-manual-event-btn').addEventListener('click', function () {
         const title = prompt('Enter the dish name:');
         if (!title) return;
@@ -135,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => console.error('Error:', error));
     });
 });
+
 
 </script>
 <style>

@@ -20,27 +20,6 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-
-#@csrf_exempt
-# @login_required
-# def recipe_notes(request, event_id):
-#     event = get_object_or_404(CalendarEvent, id=event_id, user=request.user)
-
-#     if request.method == "POST":
-#         data = json.loads(request.body)
-#         notes = data.get('notes', '').strip()
-#         event.notes = notes
-#         event.save()
-#         return JsonResponse({"status": "success", "message": "Notes updated successfully."})
-
-#     # Render the recipe notes page
-#     return render(request, 'accounts/recipe_notes.html', {
-#         "title": event.title,
-#         "recipe_url": event.recipe_url,
-#         "notes": event.notes,
-#         "event_id": event.id,
-#     })
-
 @login_required
 def recipe_notes(request, event_id):
     event = get_object_or_404(CalendarEvent, id=event_id, user=request.user)
@@ -60,6 +39,49 @@ def recipe_notes(request, event_id):
         "event_id": event.id,
     })
 
+@login_required
+def add_grocery_shopping_event(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        date = data.get('date')
+
+        if not date:
+            return JsonResponse({"status": "error", "message": "Date is required."}, status=400)
+
+        try:
+            CalendarEvent.objects.create(
+                user=request.user,
+                title="Grocery Shopping!",
+                date=date,
+                meal_type=None,  # Explicitly set to None for grocery shopping
+                image=None,
+                recipe_id=None,
+                recipe_url=None  # No recipe link for grocery shopping
+            )
+            return JsonResponse({"status": "success", "message": "Grocery shopping event added successfully."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
+
+
+@login_required
+def grocery_notes(request, event_id):
+    event = get_object_or_404(CalendarEvent, id=event_id, user=request.user)
+
+    if request.method == "POST":
+        data = json.loads(request.body)
+        notes = data.get('notes', '').strip()
+        event.notes = notes
+        event.save()
+        return JsonResponse({"status": "success", "message": "Notes updated successfully."})
+
+    # Render the grocery notes page
+    return render(request, 'accounts/grocery_notes.html', {
+        "title": event.title,
+        "notes": event.notes,
+        "event_id": event.id,
+    })
 
 # Welcome page view (for non-logged-in users)
 def welcome(request):

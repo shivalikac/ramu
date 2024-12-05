@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ title }}</h1>
+
+    <h3>Grocery Notes</h3>
+    <textarea id="grocery-notes" class="form-control" rows="10">{{ notes }}</textarea>
+    <button class="btn btn-primary mt-3" id="save-notes-btn">Save Notes</button>
+</div>
+
+<script>
+    document.getElementById('save-notes-btn').addEventListener('click', function () {
+        const notes = document.getElementById('grocery-notes').value;
+
+        fetch("{% url 'grocery_notes' event_id=event_id %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ notes: notes })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(data.message);
+            } else {
+                alert("Failed to save notes.");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script>
+{% endblock %}
