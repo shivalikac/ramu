@@ -207,35 +207,6 @@ def fetch_calendar_events(request):
     ]
     return JsonResponse(event_list, safe=False)
 
-# @login_required
-# def add_to_calendar(request):
-#     if request.method == "POST":
-#         data = json.loads(request.body)
-#         title = data.get('title')
-#         image = data.get('image')
-#         recipe_id = data.get('recipe_id')
-#         date = data.get('date')
-#         meal_type = data.get('meal_type')
-
-#         if not (title and date and meal_type):
-#             return JsonResponse({"status": "error", "message": "Title, date, and meal type are required."}, status=400)
-
-#         try:
-#             # Add the event to the calendar
-#             CalendarEvent.objects.create(
-#                 user=request.user,
-#                 title=title,
-#                 image=image,
-#                 recipe_id=recipe_id,
-#                 date=date,
-#                 meal_type=meal_type
-#             )
-#             return JsonResponse({"status": "success", "message": "Event added to calendar successfully."})
-#         except Exception as e:
-#             return JsonResponse({"status": "error", "message": str(e)}, status=500)
-
-#     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
-
 @login_required
 def add_to_calendar(request):
     if request.method == "POST":
