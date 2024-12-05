@@ -18,29 +18,29 @@ from django.http import HttpResponseRedirect
 from .models import CalendarEvent
 
 
-@login_required
-def generate_recipe(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        recipe_count = int(data.get('recipe_count', 5))
-        cuisine = data.get('cuisine', '')  # Get selected cuisine (empty if not selected)
+# @login_required
+# def generate_recipe(request):
+#     if request.method == "POST":
+#         data = json.loads(request.body)
+#         recipe_count = int(data.get('recipe_count', 5))
+#         cuisine = data.get('cuisine', '')  # Get selected cuisine (empty if not selected)
 
-        # Fetch pantry items and utensils for the user
-        pantry_items = PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True)
-        user_utensils = UtensilItem.objects.filter(user=request.user).values_list('utensil_name', flat=True)
+#         # Fetch pantry items and utensils for the user
+#         pantry_items = PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True)
+#         user_utensils = UtensilItem.objects.filter(user=request.user).values_list('utensil_name', flat=True)
 
-        ingredients = list(pantry_items)
-        utensils = list(user_utensils)
+#         ingredients = list(pantry_items)
+#         utensils = list(user_utensils)
 
-        # Call Spoonacular API with optional cuisine filtering
-        recipes = get_recipes_from_spoonacular(ingredients, utensils, recipe_count, cuisine if cuisine else None)
+#         # Call Spoonacular API with optional cuisine filtering
+#         recipes = get_recipes_from_spoonacular(ingredients, utensils, recipe_count, cuisine if cuisine else None)
 
-        if "error" in recipes:
-            return JsonResponse({"error": recipes["error"]}, status=400)
+#         if "error" in recipes:
+#             return JsonResponse({"error": recipes["error"]}, status=400)
 
-        return JsonResponse({"recipes": recipes})
+#         return JsonResponse({"recipes": recipes})
 
-    return JsonResponse({"error": "Invalid request"}, status=400)
+#     return JsonResponse({"error": "Invalid request"}, status=400)
 
 
 # Welcome page view (for non-logged-in users)
@@ -50,10 +50,22 @@ def welcome(request):
 @require_POST
 @login_required
 def delete_pantry_item(request):
-    item_id = request.POST.get('item_id')
-    item = get_object_or_404(PantryItem, id=item_id, user=request.user)
-    item.delete()
-    return JsonResponse({"status": "success", "item_id": item_id})
+    if request.method == "POST":
+        data = json.loads(request.body)
+        item_id = data.get('item_id')
+
+        if not item_id:
+            return JsonResponse({"status": "error", "message": "Item ID is required."}, status=400)
+
+        try:
+            item = PantryItem.objects.get(id=item_id, user=request.user)
+            item.delete()
+            return JsonResponse({"status": "success", "message": "Item deleted successfully."})
+        except PantryItem.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Item not found."}, status=404)
+
+    return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
+
 
 @require_POST
 @login_required
@@ -87,11 +99,25 @@ def main_welcome(request):
 @login_required
 def add_pantry_item(request):
     if request.method == "POST":
-        item_name = request.POST.get("item_name")
-        quantity = request.POST.get("quantity", 1)
-        PantryItem.objects.create(user=request.user, item_name=item_name, quantity=quantity)
-        return JsonResponse({"status": "success", "item": item_name, "quantity": quantity})
-    return JsonResponse({"status": "error"}, status=400)
+        data = json.loads(request.body)
+        item_name = data.get('item_name')
+        quantity = data.get('quantity')
+
+        if not item_name or not quantity:
+            return JsonResponse({"status": "error", "message": "Both item name and quantity are required."}, status=400)
+
+        try:
+            # Create a new pantry item
+            new_item = PantryItem.objects.create(
+                user=request.user,
+                item_name=item_name,
+                quantity=quantity
+            )
+            return JsonResponse({"status": "success", "item_id": new_item.id, "item": item_name, "quantity": quantity})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
 
 @login_required
 def add_utensil_item(request):
@@ -151,53 +177,116 @@ def add_to_calendar(request):
         if not (title and date and meal_type):
             return JsonResponse({"status": "error", "message": "Title, date, and meal type are required."}, status=400)
 
-        # Save the event to the database
-        CalendarEvent.objects.create(
-            user=request.user,
-            title=title,
-            image=image,
-            recipe_id=recipe_id,
-            date=date,
-            meal_type=meal_type
-        )
-
-        return JsonResponse({"status": "success"})
+        try:
+            # Add the event to the calendar
+            CalendarEvent.objects.create(
+                user=request.user,
+                title=title,
+                image=image,
+                recipe_id=recipe_id,
+                date=date,
+                meal_type=meal_type
+            )
+            return JsonResponse({"status": "success", "message": "Event added to calendar successfully."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
+
+
+# @login_required
+# def add_to_calendar(request):
+#     if request.method == "POST":
+#         data = json.loads(request.body)
+#         title = data.get('title')
+#         image = data.get('image')
+#         recipe_id = data.get('recipe_id')
+#         date = data.get('date')
+#         meal_type = data.get('meal_type')
+
+#         if not (title and date and meal_type):
+#             return JsonResponse({"status": "error", "message": "Title, date, and meal type are required."}, status=400)
+
+#         # Save the event to the database
+#         CalendarEvent.objects.create(
+#             user=request.user,
+#             title=title,
+#             image=image,
+#             recipe_id=recipe_id,
+#             date=date,
+#             meal_type=meal_type
+#         )
+
+#         return JsonResponse({"status": "success"})
+
+#     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
+
+# @login_required
+# def generate_recipe(request):
+#     if request.method == "POST":
+#         data = json.loads(request.body)
+
+#         # Get and validate cooking time
+#         try:
+#             cooking_time = int(data.get('cooking_time') or 0)  # Default to 0 if empty or invalid
+#         except ValueError:
+#             cooking_time = 0
+
+#         recipe_count = int(data.get('recipe_count', 5))  # Default to 5 if not provided
+#         cuisine = data.get('cuisine', '').strip()  # Get cuisine, default to empty
+
+#         # Fetch pantry items and utensils for the user
+#         pantry_items = PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True)
+#         user_utensils = UtensilItem.objects.filter(user=request.user).values_list('utensil_name', flat=True)
+
+#         # Call Spoonacular API with filters
+#         recipes = get_recipes_from_spoonacular(
+#             ingredients=list(pantry_items),
+#             user_utensils=list(user_utensils),
+#             recipe_count=recipe_count,
+#             cuisine=cuisine,
+#             cooking_time=cooking_time
+#         )
+
+#         if "error" in recipes:
+#             return JsonResponse({"error": recipes["error"]}, status=400)
+
+#         return JsonResponse({"recipes": recipes})
+
+#     return JsonResponse({"error": "Invalid request"}, status=400)
 
 @login_required
 def generate_recipe(request):
     if request.method == "POST":
         data = json.loads(request.body)
+        recipe_count = data.get('recipe_count', 5)
+        cuisine = data.get('cuisine', None)
+        cooking_time = data.get('cooking_time', None)
+        intolerances = data.get('intolerances', [])
 
-        # Get and validate cooking time
-        try:
-            cooking_time = int(data.get('cooking_time') or 0)  # Default to 0 if empty or invalid
-        except ValueError:
-            cooking_time = 0
+        pantry_items = list(PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True))
 
-        recipe_count = int(data.get('recipe_count', 5))  # Default to 5 if not provided
-        cuisine = data.get('cuisine', '').strip()  # Get cuisine, default to empty
+        # Prepare API request parameters
+        params = {
+            "ingredients": ",".join(pantry_items),
+            "number": recipe_count,
+            "cuisine": cuisine if cuisine else None,
+            "maxReadyTime": cooking_time if cooking_time else None,
+            "intolerances": ",".join(intolerances) if intolerances else None,  # Add intolerances
+            "apiKey": settings.SPOONACULAR_API_KEY
+        }
 
-        # Fetch pantry items and utensils for the user
-        pantry_items = PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True)
-        user_utensils = UtensilItem.objects.filter(user=request.user).values_list('utensil_name', flat=True)
+        # Make API request to Spoonacular
+        response = requests.get("https://api.spoonacular.com/recipes/findByIngredients", params=params)
 
-        # Call Spoonacular API with filters
-        recipes = get_recipes_from_spoonacular(
-            ingredients=list(pantry_items),
-            user_utensils=list(user_utensils),
-            recipe_count=recipe_count,
-            cuisine=cuisine,
-            cooking_time=cooking_time
-        )
+        if response.status_code == 200:
+            recipes = response.json()
+            return JsonResponse({"recipes": recipes})
+        else:
+            return JsonResponse({"error": "Failed to fetch recipes."}, status=response.status_code)
 
-        if "error" in recipes:
-            return JsonResponse({"error": recipes["error"]}, status=400)
+    return JsonResponse({"error": "Invalid request method."}, status=400)
 
-        return JsonResponse({"recipes": recipes})
-
-    return JsonResponse({"error": "Invalid request"}, status=400)
 
 
 @login_required

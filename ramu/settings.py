@@ -106,6 +106,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+SPOONACULAR_API_KEY = "62c82155ebda44cbaeed4927ea08fdc9"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/

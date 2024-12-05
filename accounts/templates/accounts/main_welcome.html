@@ -82,6 +82,29 @@
         </select>
     </div>
 
+    <!-- Intolerances Dropdown -->
+    <div class="mb-3">
+        <label for="intolerances-select" class="form-label"><strong>Select Intolerances</strong></label>
+        <select class="form-select" id="intolerances-select" multiple>
+            <option value="dairy">Dairy</option>
+            <option value="egg">Egg</option>
+            <option value="gluten">Gluten</option>
+            <option value="grain">Grain</option>
+            <option value="peanut">Peanut</option>
+            <option value="seafood">Seafood</option>
+            <option value="sesame">Sesame</option>
+            <option value="shellfish">Shellfish</option>
+            <option value="soy">Soy</option>
+            <option value="sulfite">Sulfite</option>
+            <option value="tree nut">Tree Nut</option>
+            <option value="wheat">Wheat</option>
+        </select>
+        <small class="form-text text-muted">
+            Hold down the Ctrl (Windows) / Command (Mac) key to select multiple options.
+        </small>
+    </div>
+
+
     <button class="btn btn-primary mt-4" id="generate-recipe-btn">Generate Recipe</button>
 
     <!-- Recipe Display -->
@@ -98,6 +121,10 @@
         const cuisine = document.getElementById('cuisine-select').value;
         const cookingTime = document.getElementById('cooking-time').value;
 
+        // Get selected intolerances
+        const intolerancesSelect = document.getElementById('intolerances-select');
+        const intolerances = Array.from(intolerancesSelect.selectedOptions).map(option => option.value);
+
         fetch("{% url 'generate_recipe' %}", {
             method: 'POST',
             headers: {
@@ -107,13 +134,14 @@
             body: JSON.stringify({
                 recipe_count: recipeCount,
                 cuisine: cuisine,
-                cooking_time: cookingTime
+                cooking_time: cookingTime,
+                intolerances: intolerances // Pass intolerances to the backend
             })
         })
         .then(response => response.json())
         .then(data => {
             const recipeList = document.getElementById('recipe-list');
-            recipeList.innerHTML = ''; // Clear previous recipes
+            recipeList.innerHTML = ''; // Clear the list
 
             if (data.recipes) {
                 data.recipes.forEach(recipe => {
@@ -127,10 +155,7 @@
                                 <a href="https://spoonacular.com/recipes/${recipe.title.replace(/\s+/g, '-')}-${recipe.id}" target="_blank">View Full Recipe</a>
                                 <p><strong>Used Ingredients:</strong> ${recipe.usedIngredients.map(i => i.name).join(', ')}</p>
                                 <p><strong>Missing Ingredients:</strong> ${recipe.missedIngredients.map(i => i.name).join(', ')}</p>
-                                <button class="btn btn-primary mt-2 add-to-calendar-btn" 
-                                        data-title="${recipe.title}" 
-                                        data-image="${recipe.image}" 
-                                        data-id="${recipe.id}">
+                                <button class="btn btn-primary mt-2 add-to-calendar-btn" data-title="${recipe.title}" data-image="${recipe.image}" data-id="${recipe.id}">
                                     Add to Calendar
                                 </button>
                             </div>
@@ -146,16 +171,14 @@
                         const recipeImage = this.dataset.image;
                         const recipeId = this.dataset.id;
 
+                        // Prompt user for date and meal type
                         const date = prompt(`Enter the date to schedule "${recipeTitle}" (YYYY-MM-DD):`);
-                        if (!date) return;
-
-                        const mealType = prompt('Is this for lunch or dinner? (Type "lunch" or "dinner")').toLowerCase();
-                        if (!['lunch', 'dinner'].includes(mealType)) {
-                            alert('Invalid meal type. Please type "lunch" or "dinner".');
-                            return;
+                        const mealType = prompt("Enter meal type (lunch or dinner):").toLowerCase();
+                        if (date && (mealType === 'lunch' || mealType === 'dinner')) {
+                            addToCalendar(recipeTitle, recipeImage, recipeId, date, mealType);
+                        } else {
+                            alert("Invalid input. Please provide a valid date and meal type.");
                         }
-
-                        addToCalendar(recipeTitle, recipeImage, recipeId, date, mealType);
                     });
                 });
             } else {
@@ -164,6 +187,95 @@
         })
         .catch(error => console.error('Error:', error));
     });
+
+
+
+    
+    document.getElementById('pantry').addEventListener('keypress', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+
+            const itemName = event.target.value.trim(); // Get the input and trim whitespace
+            const quantity = document.getElementById('pantry_quantity').value;
+
+            if (!itemName || !quantity) {
+                alert("Both item name and quantity are required.");
+                return;
+            }
+
+            fetch("{% url 'add_pantry_item' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ item_name: itemName, quantity: parseInt(quantity) }) // Send item name and quantity
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        // Add the new item to the DOM
+                        const pantryList = document.getElementById('pantry-list');
+
+                        // Remove "No pantry items added" message if it exists
+                        const noPantryMessage = document.getElementById('no-pantry');
+                        if (noPantryMessage) noPantryMessage.remove();
+
+                        const newItem = document.createElement('li');
+                        newItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        newItem.setAttribute('data-id', data.item_id);
+                        newItem.innerHTML = `${data.item} (${data.quantity})
+                            <button class="btn btn-danger btn-sm" onclick="deletePantryItem(${data.item_id})">Delete</button>`;
+                        pantryList.appendChild(newItem);
+
+                        // Clear the input fields
+                        event.target.value = '';
+                        document.getElementById('pantry_quantity').value = '1';
+                    } else {
+                        alert(data.message || "Error adding item.");
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    });
+
+    function deletePantryItem(itemId) {
+        if (!itemId) {
+            alert("Item ID is missing. Unable to delete the item.");
+            return;
+        }
+
+        fetch("{% url 'delete_pantry_item' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ item_id: itemId }) // Send the correct ID
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                // Remove the item from the DOM
+                const itemElement = document.querySelector(`#pantry-list li[data-id="${itemId}"]`);
+                if (itemElement) itemElement.remove();
+
+                // If no items are left, show a message
+                if (!document.querySelector('#pantry-list li')) {
+                    const noPantryMessage = document.createElement('li');
+                    noPantryMessage.className = 'list-group-item';
+                    noPantryMessage.id = 'no-pantry';
+                    noPantryMessage.innerText = 'No pantry items added.';
+                    document.getElementById('pantry-list').appendChild(noPantryMessage);
+                }
+            } else {
+                alert(data.message || "Error deleting item.");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+
 
     // Function to add a recipe to the calendar
     function addToCalendar(title, image, recipeId, date, mealType) {
@@ -191,6 +303,7 @@
         })
         .catch(error => console.error('Error:', error));
     }
+
 </script>
 
 <style>
