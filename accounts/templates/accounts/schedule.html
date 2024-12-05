@@ -10,6 +10,40 @@
     <button id="add-manual-event-btn" class="btn btn-primary mt-3">Add Meal Manually</button>
     <button class="btn btn-primary mt-3" id="add-grocery-shopping-btn">Add Grocery Shopping</button>
 </div>
+<!-- Modal for Adding Manual Meal or Grocery Shopping -->
+<div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="calendarModalLabel">Add Event to Calendar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="calendar-date" class="form-label">Select a Date</label>
+                        <input type="date" class="form-control" id="calendar-date">
+                    </div>
+                    <div class="mb-3" id="meal-type-select" style="display: none;">
+                        <label for="meal-type" class="form-label">Meal Type</label>
+                        <select class="form-select" id="meal-type">
+                            <option value="lunch">Lunch</option>
+                            <option value="dinner">Dinner</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="event-title-input" style="display: none;">
+                        <label for="event-title" class="form-label">Event Title</label>
+                        <input type="text" class="form-control" id="event-title" placeholder="Enter dish name">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-event-btn">Add to Calendar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 
@@ -111,63 +145,152 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Add Grocery Shopping Event
-    document.getElementById('add-grocery-shopping-btn').addEventListener('click', function () {
-        const date = prompt('Enter the date for grocery shopping (YYYY-MM-DD):');
-        if (!date) return;
+    // document.getElementById('add-grocery-shopping-btn').addEventListener('click', function () {
+    //     const date = prompt('Enter the date for grocery shopping (YYYY-MM-DD):');
+    //     if (!date) return;
 
-        fetch("{% url 'add_grocery_shopping_event' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ date: date })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === "success") {
-                alert(data.message);
-                calendar.refetchEvents(); // Refresh events
-            } else {
-                alert(data.message);
+    //     fetch("{% url 'add_grocery_shopping_event' %}", {
+    //         method: 'POST',
+    //         headers: {
+    //             'Content-Type': 'application/json',
+    //             'X-CSRFToken': '{{ csrf_token }}'
+    //         },
+    //         body: JSON.stringify({ date: date })
+    //     })
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         if (data.status === "success") {
+    //             alert(data.message);
+    //             calendar.refetchEvents(); // Refresh events
+    //         } else {
+    //             alert(data.message);
+    //         }
+    //     })
+    //     .catch(error => console.error('Error:', error));
+    // });
+
+
+    // Add Grocery Shopping Event Listener
+    document.getElementById('add-grocery-shopping-btn').addEventListener('click', function () {
+        // Reset modal fields
+        document.getElementById('calendar-date').value = '';
+        document.getElementById('meal-type-select').style.display = 'none';
+        document.getElementById('event-title-input').style.display = 'none';
+
+        // Show the modal
+        const calendarModal = new bootstrap.Modal(document.getElementById('calendarModal'));
+        calendarModal.show();
+
+        // Handle saving the grocery shopping event
+        document.getElementById('save-event-btn').onclick = function () {
+            const date = document.getElementById('calendar-date').value;
+
+            if (!date) {
+                alert("Please select a date.");
+                return;
             }
-        })
-        .catch(error => console.error('Error:', error));
+
+            fetch("{% url 'add_grocery_shopping_event' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ date })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert(data.message);
+                    calendar.refetchEvents(); // Refresh the calendar
+                    calendarModal.hide();
+                } else {
+                    alert(data.message || "Error adding event.");
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        };
     });
 
     // Add Manual Meal Event
+    // document.getElementById('add-manual-event-btn').addEventListener('click', function () {
+    //     const title = prompt('Enter the dish name:');
+    //     if (!title) return;
+
+    //     const date = prompt('Enter the date (YYYY-MM-DD):');
+    //     if (!date) return;
+
+    //     const mealType = prompt('Is this for lunch or dinner? (Type "lunch" or "dinner")').toLowerCase();
+    //     if (!['lunch', 'dinner'].includes(mealType)) {
+    //         alert('Invalid meal type. Please type "lunch" or "dinner".');
+    //         return;
+    //     }
+
+    //     fetch("{% url 'add_manual_calendar_event' %}", {
+    //         method: 'POST',
+    //         headers: {
+    //             'Content-Type': 'application/json',
+    //             'X-CSRFToken': '{{ csrf_token }}'
+    //         },
+    //         body: JSON.stringify({ title, date, meal_type: mealType })
+    //     })
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         if (data.status === "success") {
+    //             alert(data.message);
+    //             calendar.refetchEvents(); // Refresh events
+    //         } else {
+    //             alert(data.message);
+    //         }
+    //     })
+    //     .catch(error => console.error('Error:', error));
+    // });
+
+
+    // Add Manual Meal Event Listener
     document.getElementById('add-manual-event-btn').addEventListener('click', function () {
-        const title = prompt('Enter the dish name:');
-        if (!title) return;
+        // Reset modal fields
+        document.getElementById('calendar-date').value = '';
+        document.getElementById('meal-type-select').style.display = 'block';
+        document.getElementById('event-title-input').style.display = 'block';
 
-        const date = prompt('Enter the date (YYYY-MM-DD):');
-        if (!date) return;
+        // Show the modal
+        const calendarModal = new bootstrap.Modal(document.getElementById('calendarModal'));
+        calendarModal.show();
 
-        const mealType = prompt('Is this for lunch or dinner? (Type "lunch" or "dinner")').toLowerCase();
-        if (!['lunch', 'dinner'].includes(mealType)) {
-            alert('Invalid meal type. Please type "lunch" or "dinner".');
-            return;
-        }
+        // Handle saving the manual event
+        document.getElementById('save-event-btn').onclick = function () {
+            const date = document.getElementById('calendar-date').value;
+            const mealType = document.getElementById('meal-type').value;
+            const title = document.getElementById('event-title').value;
 
-        fetch("{% url 'add_manual_calendar_event' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ title, date, meal_type: mealType })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === "success") {
-                alert(data.message);
-                calendar.refetchEvents(); // Refresh events
-            } else {
-                alert(data.message);
+            if (!date || !mealType || !title) {
+                alert("Please fill all fields.");
+                return;
             }
-        })
-        .catch(error => console.error('Error:', error));
+
+            fetch("{% url 'add_manual_calendar_event' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ title, date, meal_type: mealType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert(data.message);
+                    calendar.refetchEvents(); // Refresh the calendar
+                    calendarModal.hide();
+                } else {
+                    alert(data.message || "Error adding event.");
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        };
     });
+
 });
 
 

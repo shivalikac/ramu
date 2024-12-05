@@ -114,6 +114,37 @@
     </div>
 </div>
 
+<!-- Modal for Adding Recipe to Calendar -->
+<div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="calendarModalLabel">Add Recipe to Calendar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="calendar-date" class="form-label">Select a Date</label>
+                        <input type="date" class="form-control" id="calendar-date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="meal-type" class="form-label">Meal Type</label>
+                        <select class="form-select" id="meal-type">
+                            <option value="lunch">Lunch</option>
+                            <option value="dinner">Dinner</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-calendar-btn">Add to Calendar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Function to handle recipe generation and display
     document.getElementById('generate-recipe-btn').addEventListener('click', function () {
@@ -164,21 +195,30 @@
                     recipeList.appendChild(li);
                 });
 
-                // Add event listeners for "Add to Calendar" buttons
+                // Event Listener for "Add to Calendar" Buttons
                 document.querySelectorAll('.add-to-calendar-btn').forEach(button => {
                     button.addEventListener('click', function () {
                         const recipeTitle = this.dataset.title;
                         const recipeImage = this.dataset.image;
                         const recipeId = this.dataset.id;
 
-                        // Prompt user for date and meal type
-                        const date = prompt(`Enter the date to schedule "${recipeTitle}" (YYYY-MM-DD):`);
-                        const mealType = prompt("Enter meal type (lunch or dinner):").toLowerCase();
-                        if (date && (mealType === 'lunch' || mealType === 'dinner')) {
+                        // Show Modal for Date and Meal Type Selection
+                        const calendarModal = new bootstrap.Modal(document.getElementById('calendarModal'));
+                        calendarModal.show();
+
+                        // Handle Save to Calendar Logic
+                        document.getElementById('save-calendar-btn').onclick = function () {
+                            const date = document.getElementById('calendar-date').value;
+                            const mealType = document.getElementById('meal-type').value;
+
+                            if (!date || !mealType) {
+                                alert("Please select a valid date and meal type.");
+                                return;
+                            }
+
                             addToCalendar(recipeTitle, recipeImage, recipeId, date, mealType);
-                        } else {
-                            alert("Invalid input. Please provide a valid date and meal type.");
-                        }
+                            calendarModal.hide();
+                        };
                     });
                 });
             } else {
@@ -277,7 +317,7 @@
 
 
 
-    // Function to add a recipe to the calendar
+    // Add Recipe to Calendar Function
     function addToCalendar(title, image, recipeId, date, mealType) {
         fetch("{% url 'add_to_calendar' %}", {
             method: 'POST',
@@ -285,20 +325,14 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: JSON.stringify({
-                title: title,
-                image: image,
-                recipe_id: recipeId,
-                date: date,
-                meal_type: mealType // Include meal type (lunch or dinner)
-            })
+            body: JSON.stringify({ title, image, recipe_id: recipeId, date, meal_type: mealType })
         })
         .then(response => response.json())
         .then(data => {
             if (data.status === "success") {
-                alert(`"${title}" has been added to your calendar on ${date} for ${mealType}.`);
+                alert(`"${title}" added to your calendar on ${date} for ${mealType}.`);
             } else {
-                alert("Failed to add to calendar.");
+                alert("Error: Unable to add to calendar.");
             }
         })
         .catch(error => console.error('Error:', error));
