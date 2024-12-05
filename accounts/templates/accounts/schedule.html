@@ -14,130 +14,127 @@
 <script>
 
 document.addEventListener('DOMContentLoaded', function () {
-        const calendarEl = document.getElementById('calendar');
+    const calendarEl = document.getElementById('calendar');
 
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            editable: true,
-            selectable: true,
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
-            },
-            events: '/fetch_calendar_events/',
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        editable: true,
+        selectable: true,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: '/fetch_calendar_events/',
 
-            eventContent: function (info) {
-                const { title, extendedProps, id } = info.event;
-                const { meal_type, recipe_url } = extendedProps;
+        eventContent: function (info) {
+            const { title, extendedProps, id } = info.event;
+            const { meal_type } = extendedProps; // Remove direct recipe_url reference
 
-                const container = document.createElement('div');
-                container.style.display = 'flex';
-                container.style.flexDirection = 'column';
-                container.style.justifyContent = 'center';
-                container.style.alignItems = 'center';
-                container.style.padding = '10px';
-                container.style.borderRadius = '8px';
-                container.style.color = '#fff';
+            const container = document.createElement('div');
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.justifyContent = 'center';
+            container.style.alignItems = 'center';
+            container.style.padding = '10px';
+            container.style.borderRadius = '8px';
+            container.style.color = '#fff';
 
-                // Set background color based on meal type
-                container.style.backgroundColor = meal_type === 'lunch' ? '#87CEEB' : '#FFB6C1';
+            // Set background color based on meal type
+            container.style.backgroundColor = meal_type === 'lunch' ? '#87CEEB' : '#FFB6C1';
 
-                // Meal Type
-                const mealTypeEl = document.createElement('div');
-                mealTypeEl.textContent = `${meal_type.charAt(0).toUpperCase() + meal_type.slice(1)}:`;
-                mealTypeEl.style.fontWeight = 'bold';
-                container.appendChild(mealTypeEl);
+            // Meal Type
+            const mealTypeEl = document.createElement('div');
+            mealTypeEl.textContent = `${meal_type.charAt(0).toUpperCase() + meal_type.slice(1)}:`;
+            mealTypeEl.style.fontWeight = 'bold';
+            container.appendChild(mealTypeEl);
 
-                // Recipe Title with Link
-                const titleEl = document.createElement('a');
-                titleEl.textContent = title;
-                titleEl.href = recipe_url; // Add the recipe URL
-                titleEl.target = '_blank'; // Open in a new tab
-                titleEl.style.color = '#fff';
-                titleEl.style.textDecoration = 'underline'; // Indicate it's a link
-                titleEl.style.marginTop = '4px';
-                container.appendChild(titleEl);
+            // Recipe Title with Link to Recipe Notes Page
+            const titleEl = document.createElement('a');
+            titleEl.textContent = title;
+            titleEl.href = `/recipe_notes/${id}/`; // Link to recipe notes page
+            titleEl.target = '_blank'; // Open in a new tab
+            titleEl.style.color = '#fff';
+            titleEl.style.textDecoration = 'underline';
+            titleEl.style.marginTop = '4px';
+            container.appendChild(titleEl);
 
-                // Delete Button
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.className = 'btn btn-sm btn-danger mt-2';
-                deleteBtn.onclick = () => deleteEvent(id);
-                container.appendChild(deleteBtn);
+            // Delete Button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'btn btn-sm btn-danger mt-2';
+            deleteBtn.onclick = () => deleteEvent(id);
+            container.appendChild(deleteBtn);
 
-                return { domNodes: [container] };
-            }
+            return { domNodes: [container] };
+        }
+    });
 
+    calendar.render();
 
+    // Delete Event Function
+    function deleteEvent(eventId) {
+        console.log("Event ID received in deleteEvent:", eventId);
 
-        });
-
-        calendar.render();
-
-        // Delete Event Function
-        function deleteEvent(eventId) {
-            console.log("Event ID received in deleteEvent:", eventId); // Log the received event ID
-
-            if (!eventId) {
-                alert("Event ID is missing. Unable to delete the event.");
-                return;
-            }
-
-            fetch("{% url 'delete_calendar_event' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ event_id: eventId }) // Pass the correct event_id
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    alert(data.message);
-                    calendar.refetchEvents(); // Refresh the calendar to update events
-                } else {
-                    alert(data.message || "Error deleting event.");
-                }
-            })
-            .catch(error => console.error('Error:', error));
+        if (!eventId) {
+            alert("Event ID is missing. Unable to delete the event.");
+            return;
         }
 
-        // Add Manual Event Function
-        document.getElementById('add-manual-event-btn').addEventListener('click', function () {
-            const title = prompt('Enter the dish name:');
-            if (!title) return;
-
-            const date = prompt('Enter the date (YYYY-MM-DD):');
-            if (!date) return;
-
-            const mealType = prompt('Is this for lunch or dinner? (Type "lunch" or "dinner")').toLowerCase();
-            if (!['lunch', 'dinner'].includes(mealType)) {
-                alert('Invalid meal type. Please type "lunch" or "dinner".');
-                return;
+        fetch("{% url 'delete_calendar_event' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ event_id: eventId }) // Pass the correct event_id
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(data.message);
+                calendar.refetchEvents(); // Refresh the calendar to update events
+            } else {
+                alert(data.message || "Error deleting event.");
             }
+        })
+        .catch(error => console.error('Error:', error));
+    }
 
-            fetch("{% url 'add_manual_calendar_event' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ title, date, meal_type: mealType })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    alert(data.message);
-                    calendar.refetchEvents(); // Refresh events
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        });
+    // Add Manual Event Function
+    document.getElementById('add-manual-event-btn').addEventListener('click', function () {
+        const title = prompt('Enter the dish name:');
+        if (!title) return;
+
+        const date = prompt('Enter the date (YYYY-MM-DD):');
+        if (!date) return;
+
+        const mealType = prompt('Is this for lunch or dinner? (Type "lunch" or "dinner")').toLowerCase();
+        if (!['lunch', 'dinner'].includes(mealType)) {
+            alert('Invalid meal type. Please type "lunch" or "dinner".');
+            return;
+        }
+
+        fetch("{% url 'add_manual_calendar_event' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ title, date, meal_type: mealType })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(data.message);
+                calendar.refetchEvents(); // Refresh events
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
     });
+});
 
 </script>
 <style>

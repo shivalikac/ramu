@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ title }}</h1>
+    <p><strong>Main Recipe Link:</strong> 
+        {% if recipe_url %}
+            <a href="{{ recipe_url }}" target="_blank">{{ recipe_url }}</a>
+        {% else %}
+            No recipe link available.
+        {% endif %}
+    </p>
+
+    <h3>Notes</h3>
+    <textarea id="recipe-notes" class="form-control" rows="10">{{ notes }}</textarea>
+    <button class="btn btn-primary mt-3" id="save-notes-btn">Save Notes</button>
+</div>
+
+<script>
+    document.getElementById('save-notes-btn').addEventListener('click', function () {
+        const notes = document.getElementById('recipe-notes').value;
+
+        fetch("{% url 'recipe_notes' event_id=event_id %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ notes: notes })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(data.message);
+            } else {
+                alert("Failed to save notes.");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script>
+{% endblock %}
+<style>
+    .container h1 {
+        font-size: 2rem;
+        color: #333;
+    }
+
+    textarea {
+        resize: none;
+    }
+
+    button#save-notes-btn {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    button#save-notes-btn:hover {
+        background-color: #45a049;
+    }
+</style>

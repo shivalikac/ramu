@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import welcome, CustomLoginView, register, main_welcome, profile, custom_logout, add_pantry_item, add_utensil_item
 from .views import delete_pantry_item, delete_utensil_item, generate_recipe, schedule, link_calendar, oauth_callback, fetch_calendar_events
-from .views import add_to_calendar
+from .views import add_to_calendar, recipe_notes
 
 from .views import (
     schedule,
@@ -30,4 +30,5 @@ urlpatterns = [
     path('add_to_calendar/', add_to_calendar, name='add_to_calendar'),
     path('delete_calendar_event/', delete_calendar_event, name='delete_calendar_event'),
     path('add_manual_calendar_event/', add_manual_calendar_event, name='add_manual_calendar_event'),
+    path('recipe_notes/<int:event_id>/', recipe_notes, name='recipe_notes'),
 ]

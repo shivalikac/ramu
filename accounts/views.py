@@ -16,31 +16,49 @@ from .model_utils import get_recipes_from_spoonacular
 from django.conf import settings
 from django.http import HttpResponseRedirect
 from .models import CalendarEvent
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 
+#@csrf_exempt
 # @login_required
-# def generate_recipe(request):
+# def recipe_notes(request, event_id):
+#     event = get_object_or_404(CalendarEvent, id=event_id, user=request.user)
+
 #     if request.method == "POST":
 #         data = json.loads(request.body)
-#         recipe_count = int(data.get('recipe_count', 5))
-#         cuisine = data.get('cuisine', '')  # Get selected cuisine (empty if not selected)
+#         notes = data.get('notes', '').strip()
+#         event.notes = notes
+#         event.save()
+#         return JsonResponse({"status": "success", "message": "Notes updated successfully."})
 
-#         # Fetch pantry items and utensils for the user
-#         pantry_items = PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True)
-#         user_utensils = UtensilItem.objects.filter(user=request.user).values_list('utensil_name', flat=True)
+#     # Render the recipe notes page
+#     return render(request, 'accounts/recipe_notes.html', {
+#         "title": event.title,
+#         "recipe_url": event.recipe_url,
+#         "notes": event.notes,
+#         "event_id": event.id,
+#     })
 
-#         ingredients = list(pantry_items)
-#         utensils = list(user_utensils)
+@login_required
+def recipe_notes(request, event_id):
+    event = get_object_or_404(CalendarEvent, id=event_id, user=request.user)
 
-#         # Call Spoonacular API with optional cuisine filtering
-#         recipes = get_recipes_from_spoonacular(ingredients, utensils, recipe_count, cuisine if cuisine else None)
+    if request.method == "POST":
+        data = json.loads(request.body)
+        notes = data.get('notes', '').strip()
+        event.notes = notes
+        event.save()
+        return JsonResponse({"status": "success", "message": "Notes updated successfully."})
 
-#         if "error" in recipes:
-#             return JsonResponse({"error": recipes["error"]}, status=400)
-
-#         return JsonResponse({"recipes": recipes})
-
-#     return JsonResponse({"error": "Invalid request"}, status=400)
+    # Render the recipe notes page
+    return render(request, 'accounts/recipe_notes.html', {
+        "title": event.title,
+        "recipe_url": event.recipe_url,  # Ensure the URL is passed here
+        "notes": event.notes,
+        "event_id": event.id,
+    })
 
 
 # Welcome page view (for non-logged-in users)
@@ -164,6 +182,35 @@ def fetch_calendar_events(request):
     ]
     return JsonResponse(event_list, safe=False)
 
+# @login_required
+# def add_to_calendar(request):
+#     if request.method == "POST":
+#         data = json.loads(request.body)
+#         title = data.get('title')
+#         image = data.get('image')
+#         recipe_id = data.get('recipe_id')
+#         date = data.get('date')
+#         meal_type = data.get('meal_type')
+
+#         if not (title and date and meal_type):
+#             return JsonResponse({"status": "error", "message": "Title, date, and meal type are required."}, status=400)
+
+#         try:
+#             # Add the event to the calendar
+#             CalendarEvent.objects.create(
+#                 user=request.user,
+#                 title=title,
+#                 image=image,
+#                 recipe_id=recipe_id,
+#                 date=date,
+#                 meal_type=meal_type
+#             )
+#             return JsonResponse({"status": "success", "message": "Event added to calendar successfully."})
+#         except Exception as e:
+#             return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+#     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
+
 @login_required
 def add_to_calendar(request):
     if request.method == "POST":
@@ -178,12 +225,16 @@ def add_to_calendar(request):
             return JsonResponse({"status": "error", "message": "Title, date, and meal type are required."}, status=400)
 
         try:
+            # Generate the Spoonacular recipe URL if a recipe_id is provided
+            recipe_url = f"https://spoonacular.com/recipes/{title.replace(' ', '-')}-{recipe_id}" if recipe_id else None
+
             # Add the event to the calendar
             CalendarEvent.objects.create(
                 user=request.user,
                 title=title,
                 image=image,
                 recipe_id=recipe_id,
+                recipe_url=recipe_url,  # Save the recipe URL
                 date=date,
                 meal_type=meal_type
             )
@@ -193,67 +244,6 @@ def add_to_calendar(request):
 
     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
 
-
-# @login_required
-# def add_to_calendar(request):
-#     if request.method == "POST":
-#         data = json.loads(request.body)
-#         title = data.get('title')
-#         image = data.get('image')
-#         recipe_id = data.get('recipe_id')
-#         date = data.get('date')
-#         meal_type = data.get('meal_type')
-
-#         if not (title and date and meal_type):
-#             return JsonResponse({"status": "error", "message": "Title, date, and meal type are required."}, status=400)
-
-#         # Save the event to the database
-#         CalendarEvent.objects.create(
-#             user=request.user,
-#             title=title,
-#             image=image,
-#             recipe_id=recipe_id,
-#             date=date,
-#             meal_type=meal_type
-#         )
-
-#         return JsonResponse({"status": "success"})
-
-#     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
-
-# @login_required
-# def generate_recipe(request):
-#     if request.method == "POST":
-#         data = json.loads(request.body)
-
-#         # Get and validate cooking time
-#         try:
-#             cooking_time = int(data.get('cooking_time') or 0)  # Default to 0 if empty or invalid
-#         except ValueError:
-#             cooking_time = 0
-
-#         recipe_count = int(data.get('recipe_count', 5))  # Default to 5 if not provided
-#         cuisine = data.get('cuisine', '').strip()  # Get cuisine, default to empty
-
-#         # Fetch pantry items and utensils for the user
-#         pantry_items = PantryItem.objects.filter(user=request.user).values_list('item_name', flat=True)
-#         user_utensils = UtensilItem.objects.filter(user=request.user).values_list('utensil_name', flat=True)
-
-#         # Call Spoonacular API with filters
-#         recipes = get_recipes_from_spoonacular(
-#             ingredients=list(pantry_items),
-#             user_utensils=list(user_utensils),
-#             recipe_count=recipe_count,
-#             cuisine=cuisine,
-#             cooking_time=cooking_time
-#         )
-
-#         if "error" in recipes:
-#             return JsonResponse({"error": recipes["error"]}, status=400)
-
-#         return JsonResponse({"recipes": recipes})
-
-#     return JsonResponse({"error": "Invalid request"}, status=400)
 
 @login_required
 def generate_recipe(request):
@@ -286,8 +276,6 @@ def generate_recipe(request):
             return JsonResponse({"error": "Failed to fetch recipes."}, status=response.status_code)
 
     return JsonResponse({"error": "Invalid request method."}, status=400)
-
-
 
 @login_required
 def schedule(request):
@@ -359,7 +347,8 @@ def fetch_calendar_events(request):
             "start": event.date.isoformat(),
             "meal_type": event.meal_type,
             "image": event.image,
-            "recipe_url": f"https://spoonacular.com/recipes/{event.title.replace(' ', '-')}-{event.recipe_id}" if event.recipe_id else None
+            # "recipe_url": f"https://spoonacular.com/recipes/{event.title.replace(' ', '-')}-{event.recipe_id}" if event.recipe_id else None
+            "recipe_url": event.recipe_url,  # Optional if you still want to show this
         }
         for event in events
     ]
