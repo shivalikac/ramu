@@ -8,6 +8,7 @@
 
         <!-- Login form -->
         <form method="POST" action="{% url 'login' %}">
+            {% csrf_token %}
 
             <!-- Username input field -->
             <div class="form-group">
