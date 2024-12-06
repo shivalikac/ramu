@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
+<!-- Extends the base template to include shared elements -->
 
 {% block content %}
 <div class="container mt-5">
-    <!-- Title with Meal Type and Date -->
+    <!-- Page title displaying the meal type and date -->
     <h1>{{ title }} - {{ meal_type|title }} on {{ date|date:"jS F Y" }}</h1>
 
-    <!-- Recipe Link -->
+    <!-- Section for the main recipe link -->
     <p><strong>Main Recipe Link:</strong> 
         {% if recipe_url %}
             <a href="{{ recipe_url }}" target="_blank">{{ recipe_url }}</a>
@@ -21,50 +22,61 @@
 </div>
 
 <script>
+    // Add an event listener for the "Save Notes" button
     document.getElementById('save-notes-btn').addEventListener('click', function () {
-        const notes = document.getElementById('recipe-notes').value;
+        const notes = document.getElementById('recipe-notes').value; // Get the textarea content
 
+        // Send a POST request to save the notes
         fetch("{% url 'recipe_notes' event_id=event_id %}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': '{{ csrf_token }}' 
             },
-            body: JSON.stringify({ notes: notes })
+            body: JSON.stringify({ notes: notes }) 
         })
-        .then(response => response.json())
+        .then(response => response.json()) 
         .then(data => {
             if (data.status === "success") {
-                alert(data.message);
+                alert(data.message); // Notify the user of a successful save
             } else {
-                alert("Failed to save notes.");
+                alert("Failed to save notes."); 
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => console.error('Error:', error)); 
     });
 </script>
 {% endblock %}
+
+<!-- Inline styling -->
 <style>
+    /* Style the page title */
     .container h1 {
         font-size: 2rem;
         color: #333;
     }
 
+    /* Prevent textarea resizing */
     textarea {
         resize: none;
     }
 
+    /* Custom styling for the Save Notes button */
     button#save-notes-btn {
-        background-color: #4CAF50;
+        background-color: #4CAF50; 
         color: white;
     }
 
+    /* Hover effect for the Save Notes button */
     button#save-notes-btn:hover {
         background-color: #45a049;
     }
+
+    /* Apply consistent font style */
     body {
         font-family: 'Lato', sans-serif; 
     }
+
     button, input, select, textarea {
         font-family: 'Lato', sans-serif; 
     }

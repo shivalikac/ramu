@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+<!-- Extends the base template to include shared elements -->
 
 {% block content %}
 <div class="container mt-5">
@@ -7,20 +7,24 @@
     <p>Email: {{ user.email }}</p>
     <p>Username: {{ user.username }}</p>
 
-    <!-- Show all users if the logged-in user is a superuser -->
+    <!-- Conditionally display all registered users if the logged-in user is a superuser -->
     {% if all_users %}
         <h3 class="mt-4">All Registered Users</h3>
+        <!-- List of all registered users -->
         <ul class="list-group">
             {% for u in all_users %}
                 <li class="list-group-item">
+                    <!-- Display each user's username and email -->
                     Username: {{ u.username }} | Email: {{ u.email }}
                 </li>
             {% endfor %}
         </ul>
     {% endif %}
 
+    <!-- Back to Home button -->
     <div class="mt-4">
         <a href="{% url 'main_welcome' %}" class="btn btn-primary">Back to Home</a>
+        <!-- Redirects the user back to the main welcome page -->
     </div>
 </div>
 {% endblock %}

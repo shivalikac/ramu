@@ -1,26 +1,41 @@
 {% extends 'base.html' %}
+<!-- Extends the base template to include shared elements -->
+
 {% block content %}
 <div class="row justify-content-center mt-5">
     <div class="col-md-6">
         <h2>Register for RAMU</h2>
+
+        <!-- Registration form -->
         <form method="POST" action="{% url 'register' %}">
-            {% csrf_token %}        
+            <!-- Use POST method for form submission -->
+            {% csrf_token %}
+
+            <!-- Username field -->
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" class="form-control" id="username" name="username" required>
             </div>
+
+            <!-- Email field -->
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" class="form-control" id="email" name="email" required>
             </div>
+
+            <!-- Password field -->
             <div class="form-group">
                 <label for="password1">Password</label>
                 <input type="password" class="form-control" id="password1" name="password1" required>
             </div>
+
+            <!-- Confirm Password field -->
             <div class="form-group">
                 <label for="password2">Confirm Password</label>
                 <input type="password" class="form-control" id="password2" name="password2" required>
             </div>
+
+            <!-- Submit button -->
             <button type="submit" class="btn btn-primary mt-3">Register</button>
         </form>
     </div>

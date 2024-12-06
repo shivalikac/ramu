@@ -1,16 +1,19 @@
 {% extends 'base.html' %}
+<!-- Extends the base template to include common structure -->
 
 {% block content %}
 <div class="container mt-5">
     <h1>Meal Planning Calendar</h1>
-    <!-- <p>Use this calendar to plan your meals.</p> -->
 
-    <!-- Calendar Display -->
+    <!-- Calendar display section -->
     <div id="calendar"></div>
+
+    <!-- Button to add events manually -->
     <button id="add-manual-event-btn" class="btn btn-primary mt-3">Add Meal Manually</button>
     <button class="btn btn-primary mt-3" id="add-grocery-shopping-btn">Add Grocery Shopping</button>
 </div>
-<!-- Modal for Adding Manual Meal or Grocery Shopping -->
+
+<!-- Modal for adding manual meal or grocery shopping events -->
 <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -45,261 +48,114 @@
     </div>
 </div>
 
+<!-- JavaScript for calendar and event handling -->
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize FullCalendar in the "calendar" div
+        const calendarEl = document.getElementById('calendar');
 
-document.addEventListener('DOMContentLoaded', function () {
-    const calendarEl = document.getElementById('calendar');
-
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        editable: true,
-        selectable: true,
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        events: '/fetch_calendar_events/',
-
-        eventContent: function (info) {
-            const { title, extendedProps, id } = info.event;
-            const { meal_type } = extendedProps;
-
-            const container = document.createElement('div');
-            container.style.display = 'flex';
-            container.style.flexDirection = 'column';
-            container.style.justifyContent = 'center';
-            container.style.alignItems = 'center';
-            container.style.padding = '10px';
-            container.style.borderRadius = '8px';
-            container.style.width = '100%'; // Fit the full width of the date block
-            container.style.height = '100%'; // Fit the full height of the date block
-
-            // Set colors for different event types
-            if (title === "Grocery Shopping!") {
-                container.style.backgroundColor = '#F9C74F'; // Gold for grocery shopping
-                container.style.color = '#B8860B'; // Dark text for contrast
-            } else if (meal_type === "lunch" ){
-                container.style.backgroundColor = '#87CEEB'; // Blue for lunch, pink for dinner
-                container.style.color = '#000080'; // White text
-            } else if (meal_type === "dinner"){
-                container.style.backgroundColor = '#FFB6C1'; // Blue for lunch, pink for dinner
-                container.style.color = '#800000'; // White text
-            }
-
-            // Meal Type or Event Type Display
-            const eventTypeEl = document.createElement('div');
-            eventTypeEl.textContent = title === "Grocery Shopping!" 
-                ? "Grocery Shopping" 
-                : `${meal_type.charAt(0).toUpperCase() + meal_type.slice(1)}:`;
-            eventTypeEl.style.fontWeight = 'bold';
-            container.appendChild(eventTypeEl);
-
-            // Event Title with Link to Notes Page
-            const titleEl = document.createElement('a');
-            titleEl.textContent = title;
-            titleEl.href = title === "Grocery Shopping!" 
-                ? `/grocery_notes/${id}/` 
-                : `/recipe_notes/${id}/`;
-            titleEl.target = '_blank'; // Open in a new tab
-            titleEl.style.color = '#fff';
-            titleEl.style.textDecoration = 'underline';
-            titleEl.style.marginTop = '4px';
-            container.appendChild(titleEl);
-
-            // Delete Button
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Delete';
-            deleteBtn.className = 'btn btn-sm btn-danger mt-2';
-            deleteBtn.onclick = () => deleteEvent(id);
-            container.appendChild(deleteBtn);
-
-            return { domNodes: [container] };
-        }
-    });
-
-    calendar.render();
-
-    // Delete Event Function
-    function deleteEvent(eventId) {
-        console.log("Event ID received in deleteEvent:", eventId);
-
-        if (!eventId) {
-            alert("Event ID is missing. Unable to delete the event.");
-            return;
-        }
-
-        fetch("{% url 'delete_calendar_event' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',  // Default view is the month grid
+            editable: true, 
+            selectable: true,  
+            headerToolbar: { 
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
-            body: JSON.stringify({ event_id: eventId })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === "success") {
-                alert(data.message);
-                calendar.refetchEvents(); // Refresh the calendar to update events
-            } else {
-                alert(data.message || "Error deleting event.");
+            events: '/fetch_calendar_events/',
+
+            // Customize event content
+            eventContent: function (info) {
+                const { title, extendedProps, id } = info.event;
+                const { meal_type } = extendedProps;
+
+                // Create a container for the event
+                const container = document.createElement('div');
+                container.style.display = 'flex';
+                container.style.flexDirection = 'column';
+                container.style.justifyContent = 'center';
+                container.style.alignItems = 'center';
+                container.style.padding = '10px';
+                container.style.borderRadius = '8px';
+                container.style.width = '100%';
+                container.style.height = '100%';
+
+                // Set colors for different event types
+                if (title === "Grocery Shopping!") {
+                    container.style.backgroundColor = '#F9C74F'; // Gold for grocery shopping
+                    container.style.color = '#B8860B'; // Dark text for contrast
+                } else if (meal_type === "lunch" ){
+                    container.style.backgroundColor = '#87CEEB'; // Blue for lunch, pink for dinner
+                    container.style.color = '#000080'; // White text
+                } else if (meal_type === "dinner"){
+                    container.style.backgroundColor = '#FFB6C1'; // Blue for lunch, pink for dinner
+                    container.style.color = '#800000'; // White text
+                }
+
+                // Add event type or meal type
+                const eventTypeEl = document.createElement('div');
+                eventTypeEl.textContent = title === "Grocery Shopping!" 
+                    ? "Grocery Shopping" 
+                    : `${meal_type.charAt(0).toUpperCase() + meal_type.slice(1)}:`;
+                eventTypeEl.style.fontWeight = 'bold';
+                container.appendChild(eventTypeEl);
+
+                // Event Title with Link to Notes Page
+                const titleEl = document.createElement('a');
+                titleEl.textContent = title;
+                titleEl.href = title === "Grocery Shopping!" 
+                    ? `/grocery_notes/${id}/` 
+                    : `/recipe_notes/${id}/`;
+                titleEl.target = '_blank'; // Open in a new tab
+                titleEl.style.color = '#fff';
+                titleEl.style.textDecoration = 'underline';
+                titleEl.style.marginTop = '4px';
+                container.appendChild(titleEl);
+
+                // Delete Button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.className = 'btn btn-sm btn-danger mt-2';
+                deleteBtn.onclick = () => deleteEvent(id);
+                container.appendChild(deleteBtn);
+
+                return { domNodes: [container] };
             }
-        })
-        .catch(error => console.error('Error:', error));
-    }
+        });
 
-    // Add Grocery Shopping Event
-    // document.getElementById('add-grocery-shopping-btn').addEventListener('click', function () {
-    //     const date = prompt('Enter the date for grocery shopping (YYYY-MM-DD):');
-    //     if (!date) return;
+        calendar.render();
 
-    //     fetch("{% url 'add_grocery_shopping_event' %}", {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //             'X-CSRFToken': '{{ csrf_token }}'
-    //         },
-    //         body: JSON.stringify({ date: date })
-    //     })
-    //     .then(response => response.json())
-    //     .then(data => {
-    //         if (data.status === "success") {
-    //             alert(data.message);
-    //             calendar.refetchEvents(); // Refresh events
-    //         } else {
-    //             alert(data.message);
-    //         }
-    //     })
-    //     .catch(error => console.error('Error:', error));
-    // });
-
-
-    // Add Grocery Shopping Event Listener
-    document.getElementById('add-grocery-shopping-btn').addEventListener('click', function () {
-        // Reset modal fields
-        document.getElementById('calendar-date').value = '';
-        document.getElementById('meal-type-select').style.display = 'none';
-        document.getElementById('event-title-input').style.display = 'none';
-
-        // Show the modal
-        const calendarModal = new bootstrap.Modal(document.getElementById('calendarModal'));
-        calendarModal.show();
-
-        // Handle saving the grocery shopping event
-        document.getElementById('save-event-btn').onclick = function () {
-            const date = document.getElementById('calendar-date').value;
-
-            if (!date) {
-                alert("Please select a date.");
+        // Delete an event from the calendar
+        function deleteEvent(eventId) {
+            if (!eventId) {
+                alert("Event ID is missing. Unable to delete the event.");
                 return;
             }
 
-            fetch("{% url 'add_grocery_shopping_event' %}", {
+            fetch("{% url 'delete_calendar_event' %}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify({ date })
+                body: JSON.stringify({ event_id: eventId })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.status === "success") {
                     alert(data.message);
-                    calendar.refetchEvents(); // Refresh the calendar
-                    calendarModal.hide();
+                    calendar.refetchEvents();
                 } else {
-                    alert(data.message || "Error adding event.");
+                    alert(data.message || "Error deleting event.");
                 }
             })
             .catch(error => console.error('Error:', error));
-        };
+        }
     });
-
-    // Add Manual Meal Event
-    // document.getElementById('add-manual-event-btn').addEventListener('click', function () {
-    //     const title = prompt('Enter the dish name:');
-    //     if (!title) return;
-
-    //     const date = prompt('Enter the date (YYYY-MM-DD):');
-    //     if (!date) return;
-
-    //     const mealType = prompt('Is this for lunch or dinner? (Type "lunch" or "dinner")').toLowerCase();
-    //     if (!['lunch', 'dinner'].includes(mealType)) {
-    //         alert('Invalid meal type. Please type "lunch" or "dinner".');
-    //         return;
-    //     }
-
-    //     fetch("{% url 'add_manual_calendar_event' %}", {
-    //         method: 'POST',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //             'X-CSRFToken': '{{ csrf_token }}'
-    //         },
-    //         body: JSON.stringify({ title, date, meal_type: mealType })
-    //     })
-    //     .then(response => response.json())
-    //     .then(data => {
-    //         if (data.status === "success") {
-    //             alert(data.message);
-    //             calendar.refetchEvents(); // Refresh events
-    //         } else {
-    //             alert(data.message);
-    //         }
-    //     })
-    //     .catch(error => console.error('Error:', error));
-    // });
-
-
-    // Add Manual Meal Event Listener
-    document.getElementById('add-manual-event-btn').addEventListener('click', function () {
-        // Reset modal fields
-        document.getElementById('calendar-date').value = '';
-        document.getElementById('meal-type-select').style.display = 'block';
-        document.getElementById('event-title-input').style.display = 'block';
-
-        // Show the modal
-        const calendarModal = new bootstrap.Modal(document.getElementById('calendarModal'));
-        calendarModal.show();
-
-        // Handle saving the manual event
-        document.getElementById('save-event-btn').onclick = function () {
-            const date = document.getElementById('calendar-date').value;
-            const mealType = document.getElementById('meal-type').value;
-            const title = document.getElementById('event-title').value;
-
-            if (!date || !mealType || !title) {
-                alert("Please fill all fields.");
-                return;
-            }
-
-            fetch("{% url 'add_manual_calendar_event' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({ title, date, meal_type: mealType })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    alert(data.message);
-                    calendar.refetchEvents(); // Refresh the calendar
-                    calendarModal.hide();
-                } else {
-                    alert(data.message || "Error adding event.");
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        };
-    });
-
-});
-
 
 </script>
+
 <style>
     /* Style for calendar events */
     /* Remove the default background and fit events to the entire block */
@@ -308,12 +164,13 @@ document.addEventListener('DOMContentLoaded', function () {
         justify-content: center;
         align-items: center;
         text-align: center;
-        background: none !important; /* Remove default background */
-        border: none !important; /* Remove borders */
-        width: 100%; /* Fit the full width of the date block */
-        height: 100%; /* Fit the full height of the date block */
-        padding: 0; /* Remove extra padding */
-        box-shadow: none; /* Remove shadows */
+        background: none !important; 
+        border: none !important;
+        /* Fit the full date block */
+        width: 100%; 
+        height: 100%;
+        padding: 0; 
+        box-shadow: none;
     }
 
     /* Adjust text inside the event */

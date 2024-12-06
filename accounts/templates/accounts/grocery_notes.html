@@ -1,35 +1,42 @@
 {% extends 'base.html' %}
+<!-- Extends the base template to include shared elements -->
 
 {% block content %}
 <div class="container mt-5">
-    <h1>{{ title }} - On {{ date|date:"jS F Y" }}</h1>
+]    <h1>{{ title }} - On {{ date|date:"jS F Y" }}</h1>
 
+    <!-- Notes Section -->
     <h3>Grocery Notes</h3>
+    <!-- Textarea for entering or viewing grocery notes -->
     <textarea id="grocery-notes" class="form-control" rows="10">{{ notes }}</textarea>
+    <!-- Button for saving the notes -->
     <button class="btn btn-primary mt-3" id="save-notes-btn">Save Notes</button>
 </div>
 
 <script>
+    // Add an event listener for the "Save Notes" button
     document.getElementById('save-notes-btn').addEventListener('click', function () {
         const notes = document.getElementById('grocery-notes').value;
 
+        // Send a POST request to save the grocery notes
         fetch("{% url 'grocery_notes' event_id=event_id %}", {
-            method: 'POST',
+            method: 'POST', 
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: JSON.stringify({ notes: notes })
+            body: JSON.stringify({ notes: notes }) 
         })
-        .then(response => response.json())
+        .then(response => response.json()) 
         .then(data => {
+            // Handle the response: show a success or failure alert
             if (data.status === "success") {
-                alert(data.message);
+                alert(data.message); 
             } else {
                 alert("Failed to save notes.");
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => console.error('Error:', error)); 
     });
 </script>
 {% endblock %}
