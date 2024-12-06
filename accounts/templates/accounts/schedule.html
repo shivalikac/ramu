@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container mt-5">
     <h1>Meal Planning Calendar</h1>
-    <p>Use this calendar to plan your meals.</p>
+    <!-- <p>Use this calendar to plan your meals.</p> -->
 
     <!-- Calendar Display -->
     <div id="calendar"></div>
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Set colors for different event types
             if (title === "Grocery Shopping!") {
                 container.style.backgroundColor = '#FFD700'; // Gold for grocery shopping
-                container.style.color = '#000'; // Dark text for contrast
+                container.style.color = '#B8860B'; // Dark text for contrast
             } else {
                 container.style.backgroundColor = meal_type === 'lunch' ? '#87CEEB' : '#FFB6C1'; // Blue for lunch, pink for dinner
                 container.style.color = '#fff'; // White text
