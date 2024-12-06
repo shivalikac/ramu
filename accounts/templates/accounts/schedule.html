@@ -72,14 +72,19 @@ document.addEventListener('DOMContentLoaded', function () {
             container.style.alignItems = 'center';
             container.style.padding = '10px';
             container.style.borderRadius = '8px';
+            container.style.width = '100%'; // Fit the full width of the date block
+            container.style.height = '100%'; // Fit the full height of the date block
 
             // Set colors for different event types
             if (title === "Grocery Shopping!") {
-                container.style.backgroundColor = '#FFD700'; // Gold for grocery shopping
+                container.style.backgroundColor = '#F9C74F'; // Gold for grocery shopping
                 container.style.color = '#B8860B'; // Dark text for contrast
-            } else {
-                container.style.backgroundColor = meal_type === 'lunch' ? '#87CEEB' : '#FFB6C1'; // Blue for lunch, pink for dinner
-                container.style.color = '#fff'; // White text
+            } else if (meal_type === "lunch" ){
+                container.style.backgroundColor = '#87CEEB'; // Blue for lunch, pink for dinner
+                container.style.color = '#000080'; // White text
+            } else if (meal_type === "dinner"){
+                container.style.backgroundColor = '#FFB6C1'; // Blue for lunch, pink for dinner
+                container.style.color = '#800000'; // White text
             }
 
             // Meal Type or Event Type Display
@@ -297,21 +302,31 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 <style>
     /* Style for calendar events */
+    /* Remove the default background and fit events to the entire block */
     .fc-event {
         display: flex;
         justify-content: center;
         align-items: center;
         text-align: center;
+        background: none !important; /* Remove default background */
+        border: none !important; /* Remove borders */
+        width: 100%; /* Fit the full width of the date block */
+        height: 100%; /* Fit the full height of the date block */
+        padding: 0; /* Remove extra padding */
+        box-shadow: none; /* Remove shadows */
     }
 
+    /* Adjust text inside the event */
     .fc-event div:first-child {
-        font-size: 14px;
+        font-size: 16px; /* Increase font size */
         font-weight: bold;
-        margin-bottom: 5px;
+        //color: #000; /* Black text for readability */
+        text-align: center;
+        width: 100%; /* Ensure full width */
     }
 
     .fc-event div:last-child {
-        font-size: 12px;
+        font-size: 14px;
         color: #333; /* Neutral text color for readability */
     }
 
