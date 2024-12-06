@@ -369,32 +369,6 @@ def custom_logout(request):
     logout(request) 
     return redirect('welcome')  # Redirect to the welcome page
 
-
-@login_required
-def fetch_calendar_events(request):
-    """
-    Fetch calendar events for the logged-in user.
-
-    GET: Retrieves all calendar events for the user and returns them as JSON.
-
-    Args:
-        request: The HTTP request object.
-
-    Returns:
-        JsonResponse: List of user's calendar events.
-    """
-    events = CalendarEvent.objects.filter(user=request.user)  # Get user's calendar events
-    event_list = [
-        {
-            "title": event.title,
-            "start": event.date.isoformat(),
-            "image": event.image,  # Optional field
-        }
-        for event in events
-    ]
-    return JsonResponse(event_list, safe=False)
-
-
 @login_required
 def add_to_calendar(request):
     """
