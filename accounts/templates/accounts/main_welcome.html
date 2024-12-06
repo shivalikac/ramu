@@ -2,117 +2,123 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1>Welcome, {{ user.username }}!</h1>
+    <h1 class="mb-5">Welcome, {{ user.username }}!</h1>
 
     <!-- Pantry Section -->
-    <h3>Your Pantry</h3>
-    <div class="mb-3">
-        <label for="pantry" class="form-label">Add Pantry Item</label>
-        <input type="text" class="form-control" id="pantry" placeholder="Enter pantry item name">
-        <input type="number" class="form-control mt-2" id="pantry_quantity" placeholder="Quantity" value="1">
+    <div class="mb-5">
+        <h3 class="mb-3">Your Pantry</h3>
+        <div class="mb-3">
+            <label for="pantry" class="form-label">Add Pantry Item</label>
+            <input type="text" class="form-control" id="pantry" placeholder="Enter pantry item name">
+            <input type="number" class="form-control mt-2" id="pantry_quantity" placeholder="Quantity" value="1">
+        </div>
+        <ul id="pantry-list" class="list-group">
+            {% for item in pantry_items %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ item.id }}">
+                    {{ item.item_name }} ({{ item.quantity }})
+                    <button class="btn btn-danger btn-sm" onclick="deletePantryItem({{ item.id }})">Delete</button>
+                </li>
+            {% empty %}
+                <li class="list-group-item text-muted">No pantry items added yet.</li>
+            {% endfor %}
+        </ul>
     </div>
-    <ul id="pantry-list" class="list-group">
-        {% for item in pantry_items %}
-            <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ item.id }}">
-                {{ item.item_name }} ({{ item.quantity }})
-                <button class="btn btn-danger btn-sm" onclick="deletePantryItem({{ item.id }})">Delete</button>
-            </li>
-        {% empty %}
-            <li class="list-group-item" id="no-pantry">No pantry items added.</li>
-        {% endfor %}
-    </ul>
 
     <!-- Utensil Section -->
-    <h3>Your Utensils</h3>
-    <div class="mb-3">
-        <label for="utensil" class="form-label">Add Utensil</label>
-        <input type="text" class="form-control" id="utensil" placeholder="Enter utensil name">
-        <input type="number" class="form-control mt-2" id="utensil_quantity" placeholder="Quantity" value="1">
+    <div class="mb-5">
+        <h3 class="mb-3">Your Utensils</h3>
+        <div class="mb-3">
+            <label for="utensil" class="form-label">Add Utensil</label>
+            <input type="text" class="form-control" id="utensil" placeholder="Enter utensil name">
+            <input type="number" class="form-control mt-2" id="utensil_quantity" placeholder="Quantity" value="1">
+        </div>
+        <ul id="utensil-list" class="list-group">
+            {% for utensil in utensil_items %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ utensil.id }}">
+                    {{ utensil.utensil_name }} ({{ utensil.quantity }})
+                    <button class="btn btn-danger btn-sm" onclick="deleteUtensilItem({{ utensil.id }})">Delete</button>
+                </li>
+            {% empty %}
+                <li class="list-group-item text-muted">No utensils added yet.</li>
+            {% endfor %}
+        </ul>
     </div>
-    <ul id="utensil-list" class="list-group">
-        {% for utensil in utensil_items %}
-            <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ utensil.id }}">
-                {{ utensil.utensil_name }} ({{ utensil.quantity }})
-                <button class="btn btn-danger btn-sm" onclick="deleteUtensilItem({{ utensil.id }})">Delete</button>
-            </li>
-        {% empty %}
-            <li class="list-group-item" id="no-utensils">No utensils added.</li>
-        {% endfor %}
-    </ul>
 
     <!-- Filters for Recipes -->
-    <div class="mb-3">
-        <label for="cooking-time" class="form-label">Maximum Cooking Time (in minutes)</label>
-        <input type="number" class="form-control" id="cooking-time" placeholder="Enter time (e.g., 30)" min="1">
-    </div>
-    <div class="mb-3">
-        <label for="recipe-count" class="form-label">Number of Recipe Suggestions</label>
-        <input type="number" class="form-control" id="recipe-count" value="5" min="1" max="10">
-    </div>
-    <div class="mb-3">
-        <label for="cuisine-select" class="form-label">Select a Cuisine</label>
-        <select class="form-select" id="cuisine-select">
-            <option value="">-- Select Cuisine --</option>
-            <option value="African">African</option>
-            <option value="American">American</option>
-            <option value="British">British</option>
-            <option value="Cajun">Cajun</option>
-            <option value="Caribbean">Caribbean</option>
-            <option value="Chinese">Chinese</option>
-            <option value="Eastern European">Eastern European</option>
-            <option value="European">European</option>
-            <option value="French">French</option>
-            <option value="German">German</option>
-            <option value="Greek">Greek</option>
-            <option value="Indian">Indian</option>
-            <option value="Irish">Irish</option>
-            <option value="Italian">Italian</option>
-            <option value="Japanese">Japanese</option>
-            <option value="Jewish">Jewish</option>
-            <option value="Korean">Korean</option>
-            <option value="Latin American">Latin American</option>
-            <option value="Mediterranean">Mediterranean</option>
-            <option value="Mexican">Mexican</option>
-            <option value="Middle Eastern">Middle Eastern</option>
-            <option value="Nordic">Nordic</option>
-            <option value="Southern">Southern</option>
-            <option value="Spanish">Spanish</option>
-            <option value="Thai">Thai</option>
-            <option value="Vietnamese">Vietnamese</option>
-        </select>
+    <div class="mb-5">
+        <h3 class="mb-3">Filters for Recipes</h3>
+        <div class="mb-3">
+            <label for="cooking-time" class="form-label">Maximum Cooking Time (in minutes)</label>
+            <input type="number" class="form-control" id="cooking-time" placeholder="Enter time (e.g., 30)" min="1">
+        </div>
+        <div class="mb-3">
+            <label for="recipe-count" class="form-label">Number of Recipe Suggestions</label>
+            <input type="number" class="form-control" id="recipe-count" value="5" min="1" max="10">
+        </div>
+        <div class="mb-3">
+            <label for="cuisine-select" class="form-label">Select a Cuisine</label>
+            <select class="form-select" id="cuisine-select">
+                <option value="">-- Select Cuisine --</option>
+                <option value="African">African</option>
+                <option value="American">American</option>
+                <option value="British">British</option>
+                <option value="Cajun">Cajun</option>
+                <option value="Caribbean">Caribbean</option>
+                <option value="Chinese">Chinese</option>
+                <option value="Eastern European">Eastern European</option>
+                <option value="European">European</option>
+                <option value="French">French</option>
+                <option value="German">German</option>
+                <option value="Greek">Greek</option>
+                <option value="Indian">Indian</option>
+                <option value="Irish">Irish</option>
+                <option value="Italian">Italian</option>
+                <option value="Japanese">Japanese</option>
+                <option value="Jewish">Jewish</option>
+                <option value="Korean">Korean</option>
+                <option value="Latin American">Latin American</option>
+                <option value="Mediterranean">Mediterranean</option>
+                <option value="Mexican">Mexican</option>
+                <option value="Middle Eastern">Middle Eastern</option>
+                <option value="Nordic">Nordic</option>
+                <option value="Southern">Southern</option>
+                <option value="Spanish">Spanish</option>
+                <option value="Thai">Thai</option>
+                <option value="Vietnamese">Vietnamese</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="intolerances-select" class="form-label"><strong>Select Intolerances</strong></label>
+            <select class="form-select" id="intolerances-select" multiple>
+                <option value="dairy">Dairy</option>
+                <option value="egg">Egg</option>
+                <option value="gluten">Gluten</option>
+                <option value="grain">Grain</option>
+                <option value="peanut">Peanut</option>
+                <option value="seafood">Seafood</option>
+                <option value="sesame">Sesame</option>
+                <option value="shellfish">Shellfish</option>
+                <option value="soy">Soy</option>
+                <option value="sulfite">Sulfite</option>
+                <option value="tree nut">Tree Nut</option>
+                <option value="wheat">Wheat</option>
+            </select>
+            <small class="form-text text-muted">
+                Hold down the Ctrl (Windows) / Command (Mac) key to select multiple options.
+            </small>
+        </div>
     </div>
 
-    <!-- Intolerances Dropdown -->
-    <div class="mb-3">
-        <label for="intolerances-select" class="form-label"><strong>Select Intolerances</strong></label>
-        <select class="form-select" id="intolerances-select" multiple>
-            <option value="dairy">Dairy</option>
-            <option value="egg">Egg</option>
-            <option value="gluten">Gluten</option>
-            <option value="grain">Grain</option>
-            <option value="peanut">Peanut</option>
-            <option value="seafood">Seafood</option>
-            <option value="sesame">Sesame</option>
-            <option value="shellfish">Shellfish</option>
-            <option value="soy">Soy</option>
-            <option value="sulfite">Sulfite</option>
-            <option value="tree nut">Tree Nut</option>
-            <option value="wheat">Wheat</option>
-        </select>
-        <small class="form-text text-muted">
-            Hold down the Ctrl (Windows) / Command (Mac) key to select multiple options.
-        </small>
-    </div>
-
-
-    <button class="btn btn-primary mt-4" id="generate-recipe-btn">Generate Recipe</button>
+    <!-- Generate Recipe Button -->
+    <button class="btn btn-lg btn-primary my-3 px-4 py-3" id="generate-recipe-btn">Generate Recipe!</button>
 
     <!-- Recipe Display -->
-    <div id="recipe-display" class="mt-4">
-        <h3>Suggested Recipes</h3>
+    <div id="recipe-display" class="mt-5">
+        <h3 class="mb-3">Suggested Recipes</h3>
         <ul id="recipe-list" class="list-group"></ul>
     </div>
 </div>
+
 
 <!-- Modal for Adding Recipe to Calendar -->
 <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
@@ -182,7 +188,7 @@
                         <div class="recipe-card">
                             <img src="${recipe.image}" alt="${recipe.title}" class="recipe-img">
                             <div class="recipe-info">
-                                <h4>${recipe.title}</h4>
+                                <h3>${recipe.title}</h3>
                                 <a href="https://spoonacular.com/recipes/${recipe.title.replace(/\s+/g, '-')}-${recipe.id}" target="_blank">View Full Recipe</a>
                                 <p><strong>Used Ingredients:</strong> ${recipe.usedIngredients.map(i => i.name).join(', ')}</p>
                                 <p><strong>Missing Ingredients:</strong> ${recipe.missedIngredients.map(i => i.name).join(', ')}</p>
@@ -347,20 +353,27 @@
         gap: 15px;
     }
     .recipe-img {
-        width: 100px;
-        height: 100px;
+        width: 150px; /* Increase width */
+        height: 150px; /* Increase height */
         object-fit: cover;
         border-radius: 8px;
     }
     .recipe-info {
         flex: 1;
     }
-    .recipe-info h4 {
+    .recipe-info h3 { /* Ensure the font size for h3 is visually appropriate */
+        font-size: 1.5rem; /* Adjust based on preference */
         margin: 0;
     }
     .recipe-info a {
         text-decoration: none;
         color: #007bff;
+    }
+    body {
+        font-family: 'Lato', sans-serif; 
+    }
+    button, input, select, textarea {
+        font-family: 'Lato', sans-serif; 
     }
 </style>
 {% endblock %}
