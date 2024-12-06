@@ -234,6 +234,54 @@
         .catch(error => console.error('Error:', error));
     });
 
+    document.getElementById('utensil').addEventListener('keypress', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+
+            const utensilName = event.target.value.trim(); // Get the input and trim whitespace
+            const quantity = document.getElementById('utensil_quantity').value;
+
+            if (!utensilName || !quantity) {
+                alert("Both utensil name and quantity are required.");
+                return;
+            }
+
+            fetch("{% url 'add_utensil_item' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ utensil_name: utensilName, quantity: parseInt(quantity) }) // Send utensil name and quantity
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        // Add the new item to the DOM
+                        const utensilList = document.getElementById('utensil-list');
+
+                        // Remove "No utensils added" message if it exists
+                        const noUtensilMessage = document.getElementById('no-utensils');
+                        if (noUtensilMessage) noUtensilMessage.remove();
+
+                        const newItem = document.createElement('li');
+                        newItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        newItem.setAttribute('data-id', data.utensil_id);
+                        newItem.innerHTML = `${data.utensil} (${data.quantity})
+                            <button class="btn btn-danger btn-sm" onclick="deleteUtensilItem(${data.utensil_id})">Delete</button>`;
+                        utensilList.appendChild(newItem);
+
+                        // Clear the input fields
+                        event.target.value = '';
+                        document.getElementById('utensil_quantity').value = '1';
+                    } else {
+                        alert(data.message || "Error adding utensil.");
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    });
+
 
 
     
@@ -316,6 +364,42 @@
                 }
             } else {
                 alert(data.message || "Error deleting item.");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function deleteUtensilItem(itemId) {
+        if (!itemId) {
+            alert("Item ID is missing. Unable to delete the utensil.");
+            return;
+        }
+
+        fetch("{% url 'delete_utensil_item' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ item_id: itemId }) // Send the correct utensil ID
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                // Remove the utensil from the DOM
+                const utensilElement = document.querySelector(`#utensil-list li[data-id="${itemId}"]`);
+                if (utensilElement) utensilElement.remove();
+
+                // If no utensils are left, show a message
+                if (!document.querySelector('#utensil-list li')) {
+                    const noUtensilMessage = document.createElement('li');
+                    noUtensilMessage.className = 'list-group-item';
+                    noUtensilMessage.id = 'no-utensils';
+                    noUtensilMessage.innerText = 'No utensils added yet.';
+                    document.getElementById('utensil-list').appendChild(noUtensilMessage);
+                }
+            } else {
+                alert(data.message || "Error deleting utensil.");
             }
         })
         .catch(error => console.error('Error:', error));

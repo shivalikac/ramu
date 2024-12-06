@@ -110,13 +110,28 @@ def delete_pantry_item(request):
     return JsonResponse({"status": "error", "message": "Invalid request method."}, status=400)
 
 
-@require_POST
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def delete_utensil_item(request):
-    item_id = request.POST.get('item_id')
-    item = get_object_or_404(UtensilItem, id=item_id, user=request.user)
-    item.delete()
-    return JsonResponse({"status": "success", "item_id": item_id})
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            utensil_id = data.get('item_id')
+            if not utensil_id:
+                return JsonResponse({'status': 'error', 'message': 'Item ID is missing.'}, status=400)
+
+            # Assuming UtensilItem is your model
+            utensil_item = UtensilItem.objects.get(id=utensil_id, user=request.user)
+            utensil_item.delete()
+            return JsonResponse({'status': 'success', 'message': 'Utensil deleted successfully.'})
+        except UtensilItem.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Utensil not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
+
 
 @login_required
 def profile(request):
@@ -164,12 +179,22 @@ def add_pantry_item(request):
 
 @login_required
 def add_utensil_item(request):
-    if request.method == "POST":
-        utensil_name = request.POST.get("utensil_name")
-        quantity = request.POST.get("quantity", 1)
-        UtensilItem.objects.create(user=request.user, utensil_name=utensil_name, quantity=quantity)
-        return JsonResponse({"status": "success", "utensil": utensil_name, "quantity": quantity})
-    return JsonResponse({"status": "error"}, status=400)
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        utensil_name = data.get('utensil_name')
+        quantity = data.get('quantity', 1)
+
+        if not utensil_name or quantity <= 0:
+            return JsonResponse({"status": "error", "message": "Invalid utensil name or quantity."})
+
+        utensil = UtensilItem.objects.create(
+            user=request.user,
+            utensil_name=utensil_name,
+            quantity=quantity
+        )
+        return JsonResponse({"status": "success", "utensil_id": utensil.id, "utensil": utensil.utensil_name, "quantity": utensil.quantity})
+    
+    return JsonResponse({"status": "error", "message": "Invalid request method."})
 
 # Register View
 def register(request):
@@ -343,7 +368,6 @@ def fetch_calendar_events(request):
             "start": event.date.isoformat(),
             "meal_type": event.meal_type,
             "image": event.image,
-            # "recipe_url": f"https://spoonacular.com/recipes/{event.title.replace(' ', '-')}-{event.recipe_id}" if event.recipe_id else None
             "recipe_url": event.recipe_url,  # Optional if you still want to show this
         }
         for event in events
